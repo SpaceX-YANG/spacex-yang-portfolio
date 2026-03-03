@@ -1,61 +1,71 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-// --- Global Styles & Fonts ---
+// --- Global Styles & Apple-esque Fonts ---
 const GlobalStyles = () => (
   <style>{`
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=JetBrains+Mono:wght@400;700&display=swap');
-    
     :root {
-      --bg-dark: #050505;
-      --magenta: #DA205A;
+      --bg-dark: #000000;
+      --apple-gray: #1d1d1f;
+      --magenta: #FF2A6D;
+      --cyan: #05D9E8;
     }
     body {
       margin: 0;
       background-color: var(--bg-dark);
-      color: white;
-      font-family: 'JetBrains Mono', monospace;
+      color: #f5f5f7;
+      /* Apple Official Font Stack */
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
       overflow-x: hidden;
       cursor: none; 
     }
-    h1, h2, h3, h4, h5, h6, .font-inter {
-      font-family: 'Inter', sans-serif;
+    .font-mono {
+      font-family: 'SF Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     }
     
-    ::-webkit-scrollbar { width: 4px; background: transparent; }
-    ::-webkit-scrollbar-thumb { background: rgba(218, 32, 90, 0.5); border-radius: 4px; }
+    ::-webkit-scrollbar { width: 0px; background: transparent; }
     
     @keyframes blink { 50% { opacity: 0; } }
     .caret { animation: blink 1s step-end infinite; }
     
-    .glow-bg {
-      position: absolute;
-      width: 100%; height: 100%;
-      background: conic-gradient(from 180deg at 50% 50%, rgba(218, 32, 90, 0.1) 0deg, rgba(5, 5, 5, 0) 180deg, rgba(218, 32, 90, 0.1) 360deg);
-      filter: blur(80px);
-      z-index: -1;
-      pointer-events: none;
+    /* Apple Glassmorphism Widget Style */
+    .apple-glass {
+      background: rgba(28, 28, 30, 0.4);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 24px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.5);
     }
 
-    .glass-panel {
-      background: rgba(255, 255, 255, 0.03);
-      backdrop-filter: blur(12px);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 16px;
+    /* Siri/Apple Intelligence Glow Effect */
+    .ai-glow {
+      position: absolute;
+      width: 300px; height: 300px;
+      background: radial-gradient(circle, rgba(255,42,109,0.4) 0%, rgba(5,217,232,0.2) 40%, rgba(0,0,0,0) 70%);
+      filter: blur(40px);
+      animation: breathe 4s infinite ease-in-out alternate;
+      z-index: 0;
+      pointer-events: none;
+    }
+    @keyframes breathe {
+      0% { transform: scale(1); opacity: 0.6; }
+      100% { transform: scale(1.3); opacity: 1; }
     }
   `}</style>
 );
 
-// --- Custom Hook: Smooth Mouse (Neon Cursor) ---
+// --- Custom Hook: Smooth Neon Cursor ---
 const useSmoothMouse = () => {
-  const[mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  const targetPosition = useRef({ x: 0, y: 0 });
+  const [mousePosition, setMousePosition] = useState({ x: window.innerWidth/2, y: window.innerHeight/2 });
+  const targetPosition = useRef({ x: window.innerWidth/2, y: window.innerHeight/2 });
 
   useEffect(() => {
     const handleMouseMove = (e) => {
       targetPosition.current = { x: e.clientX, y: e.clientY };
     };
     window.addEventListener('mousemove', handleMouseMove);
-
     let animationFrameId;
     const render = () => {
       setMousePosition((prev) => ({
@@ -65,270 +75,180 @@ const useSmoothMouse = () => {
       animationFrameId = requestAnimationFrame(render);
     };
     render();
-
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
       cancelAnimationFrame(animationFrameId);
     };
-  },[]);
-
+  }, []);
   return mousePosition;
 };
 
-// --- Component: Magnetic Button ---
-const MagneticButton = ({ children, className, onClick, type = "button", disabled = false }) => {
+// --- Component: Apple Magnetic Button ---
+const MagneticButton = ({ children, className, onClick, type = "button" }) => {
   const ref = useRef(null);
   const [position, setPosition] = useState({ x: 0, y: 0 });
 
   const handleMouseMove = (e) => {
-    if (disabled) return;
     const { clientX, clientY } = e;
     const { width, height, left, top } = ref.current.getBoundingClientRect();
     const x = clientX - (left + width / 2);
     const y = clientY - (top + height / 2);
-    setPosition({ x: x * 0.3, y: y * 0.3 });
+    setPosition({ x: x * 0.2, y: y * 0.2 });
   };
 
-  const handleMouseLeave = () => {
-    setPosition({ x: 0, y: 0 });
-  };
+  const handleMouseLeave = () => setPosition({ x: 0, y: 0 });
 
   return (
     <button
-      type={type}
-      ref={ref}
-      onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
-      onClick={onClick}
-      disabled={disabled}
-      style={{ transform: `translate(${position.x}px, ${position.y}px)`, transition: 'transform 0.1s ease-out' }}
-      className={`relative px-6 py-3 rounded-full border border-white/20 bg-white/5 backdrop-blur-md hover:border-[#DA205A]/50 transition-colors disabled:opacity-50 ${className}`}
+      type={type} ref={ref}
+      onMouseMove={handleMouseMove} onMouseLeave={handleMouseLeave} onClick={onClick}
+      style={{ transform: `translate(${position.x}px, ${position.y}px)`, transition: 'transform 0.15s ease-out' }}
+      className={`relative px-8 py-4 rounded-full border border-white/10 bg-white/10 backdrop-blur-md hover:bg-white/20 transition-all text-sm font-semibold tracking-wide uppercase shadow-lg ${className}`}
     >
       {children}
     </button>
   );
 };
 
-// --- Component: Algorithmic Donut (Background Native 3D Canvas) ---
+// --- Component: Elegant 3D Particle Space ---
 const AlgorithmicDonut = () => {
   const canvasRef = useRef(null);
-  const mouseRef = useRef({ x: 0, y: 0, isHovering: false });
-
   useEffect(() => {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
-    let width = window.innerWidth;
-    let height = window.innerHeight;
-    canvas.width = width;
-    canvas.height = height;
+    let width = window.innerWidth; let height = window.innerHeight;
+    canvas.width = width; canvas.height = height;
 
-    const particles =[];
-    const R = 180; 
-    const r = 60;  
-    const density = 40;
-
+    const particles = [];
+    const density = 45;
     for (let i = 0; i < density; i++) {
       for (let j = 0; j < density; j++) {
         const u = (i / density) * Math.PI * 2;
         const v = (j / density) * Math.PI * 2;
-        const x = (R + r * Math.cos(v)) * Math.cos(u);
-        const y = (R + r * Math.cos(v)) * Math.sin(u);
-        const z = r * Math.sin(v);
-        particles.push({ ox: x, oy: y, oz: z, x, y, z, vx: 0, vy: 0, vz: 0 });
+        const x = (220 + 80 * Math.cos(v)) * Math.cos(u);
+        const y = (220 + 80 * Math.cos(v)) * Math.sin(u);
+        const z = 80 * Math.sin(v);
+        particles.push({ x, y, z });
       }
     }
 
-    let angleX = 0;
-    let angleY = 0;
-    let animationFrameId;
+    let angleX = 0; let angleY = 0;
+    let animationId;
 
     const render = () => {
       ctx.clearRect(0, 0, width, height);
-      
-      const scrollY = window.scrollY;
-      const opacity = Math.max(0, 1 - scrollY / 500);
-      ctx.fillStyle = `rgba(218, 32, 90, ${opacity * 0.8})`;
-
-      angleX += 0.003;
-      angleY += 0.004;
-
+      angleX += 0.002; angleY += 0.003;
       const cosX = Math.cos(angleX); const sinX = Math.sin(angleX);
       const cosY = Math.cos(angleY); const sinY = Math.sin(angleY);
 
       particles.forEach(p => {
-        if (mouseRef.current.isHovering) {
-          const dx = p.x - mouseRef.current.x;
-          const dy = p.y - mouseRef.current.y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist < 100) {
-            p.vx += (dx / dist) * 2;
-            p.vy += (dy / dist) * 2;
-          }
-        }
-        
-        p.vx += (p.ox - p.x) * 0.05;
-        p.vy += (p.oy - p.y) * 0.05;
-        p.vz += (p.oz - p.z) * 0.05;
-        p.vx *= 0.85; p.vy *= 0.85; p.vz *= 0.85;
-        p.x += p.vx; p.y += p.vy; p.z += p.vz;
-
         let y1 = p.y * cosX - p.z * sinX;
         let z1 = p.y * sinX + p.z * cosX;
         let x2 = p.x * cosY + z1 * sinY;
         let z2 = -p.x * sinY + z1 * cosY;
 
-        const fov = 600;
-        const scale = fov / (fov + z2);
+        const scale = 800 / (800 + z2);
         const screenX = width / 2 + x2 * scale;
         const screenY = height / 2 + y1 * scale;
 
-        const size = Math.max(0.5, 2 * scale);
-        ctx.globalAlpha = Math.max(0.1, scale - 0.5) * opacity;
+        ctx.globalAlpha = Math.max(0.05, (scale - 0.5) * 0.5);
+        ctx.fillStyle = '#ffffff';
         ctx.beginPath();
-        ctx.arc(screenX, screenY, size, 0, Math.PI * 2);
+        ctx.arc(screenX, screenY, Math.max(0.5, 1.5 * scale), 0, Math.PI * 2);
         ctx.fill();
       });
-
-      animationFrameId = requestAnimationFrame(render);
+      animationId = requestAnimationFrame(render);
     };
     render();
 
     const handleResize = () => {
-      width = window.innerWidth;
-      height = window.innerHeight;
-      canvas.width = width;
-      canvas.height = height;
+      canvas.width = window.innerWidth; canvas.height = window.innerHeight;
     };
     window.addEventListener('resize', handleResize);
-
-    const handleMouseMove = (e) => {
-      mouseRef.current = {
-        x: (e.clientX - width / 2) / (600 / 600), 
-        y: (e.clientY - height / 2) / (600 / 600),
-        isHovering: true
-      };
-    };
-    const handleMouseLeave = () => { mouseRef.current.isHovering = false; };
-    
-    canvas.addEventListener('mousemove', handleMouseMove);
-    canvas.addEventListener('mouseleave', handleMouseLeave);
-
-    return () => {
-      window.removeEventListener('resize', handleResize);
-      canvas.removeEventListener('mousemove', handleMouseMove);
-      canvas.removeEventListener('mouseleave', handleMouseLeave);
-      cancelAnimationFrame(animationFrameId);
-    };
-  },[]);
-
-  return <canvas ref={canvasRef} className="fixed inset-0 z-0 touch-none pointer-events-none" />;
+    return () => { window.removeEventListener('resize', handleResize); cancelAnimationFrame(animationId); };
+  }, []);
+  return <canvas ref={canvasRef} className="fixed inset-0 z-0 pointer-events-none opacity-60" />;
 };
 
-// --- Component: Input Field ---
-const InputField = ({ label, type = "text", value, onChange, placeholder, options }) => (
-  <div className="flex flex-col space-y-2 mb-4 relative z-20">
-    <label className="text-xs text-white/60 tracking-widest uppercase font-bold">{label}</label>
+// --- Component: Apple Style Input ---
+const AppleInput = ({ label, type = "text", value, onChange, placeholder, options }) => (
+  <div className="flex flex-col mb-6 relative group">
+    <label className="text-[11px] font-semibold text-white/50 tracking-widest uppercase mb-2 pl-1 transition-colors group-focus-within:text-[#05D9E8]">
+      {label}
+    </label>
     {type === "select" ? (
-      <select 
-        value={value} 
-        onChange={onChange}
-        className="bg-black/40 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-[#DA205A] transition-colors appearance-none cursor-none"
-      >
-        {options.map((opt) => <option key={opt.value} value={opt.value} className="bg-black text-white">{opt.label}</option>)}
+      <select value={value} onChange={onChange} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-lg focus:outline-none focus:border-[#05D9E8]/50 focus:bg-white/10 transition-all appearance-none cursor-none backdrop-blur-md">
+        {options.map((opt) => <option key={opt.value} value={opt.value} className="bg-[#1c1c1e] text-white">{opt.label}</option>)}
       </select>
     ) : (
-      <input
-        type={type}
-        value={value}
-        onChange={onChange}
-        placeholder={placeholder}
-        className="bg-black/40 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-[#DA205A] transition-colors placeholder:text-white/20 cursor-none"
-        required
+      <input type={type} value={value} onChange={onChange} placeholder={placeholder} required
+        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-lg focus:outline-none focus:border-[#05D9E8]/50 focus:bg-white/10 transition-all placeholder:text-white/20 cursor-none backdrop-blur-md"
       />
     )}
   </div>
 );
 
-// --- Component: AI Loading / Calculating State ---
-const AnalyzingState = () => {
-  const [text, setText] = useState('');
-  const logs =[
-    "Initializing BaZi Engine...",
-    "Parsing Heavenly Stems and Earthly Branches...",
-    "Calculating Day Master strength...",
-    "Querying Ziwei Doushu Palaces...",
-    "Aligning 10-Year Da Yun logic gates...",
-    "Generating AI destiny matrix...",
-    "Finalizing predictions..."
-  ];
+// --- Helper: Dynamic Bazi Hash Generator ---
+const generateBazi = (name, dateStr) => {
+  // Easter Egg: Your exact birthdate!
+  if (dateStr === '2002-12-19') {
+    return {
+      pillars: [
+        { name: 'Year', stem: '壬', branch: '午', color: '#4A90E2' },
+        { name: 'Month', stem: '壬', branch: '子', color: '#4A90E2' },
+        { name: 'Day', stem: '辛', branch: '未', color: '#F8E71C', isDayMaster: true },
+        { name: 'Hour', stem: '癸', branch: '巳', color: '#4A90E2' }
+      ],
+      dayMaster: '辛金 (Xin Metal)'
+    };
+  }
 
-  useEffect(() => {
-    let currentLog = 0;
-    const interval = setInterval(() => {
-      setText(logs[currentLog]);
-      currentLog++;
-      if (currentLog >= logs.length) clearInterval(interval);
-    }, 600);
-    return () => clearInterval(interval);
-  },[]);
+  // Pseudo-random generation based on input string for other users
+  const stems = ['甲','乙','丙','丁','戊','己','庚','辛','壬','癸'];
+  const branches = ['子','丑','寅','卯','辰','巳','午','未','申','酉','戌','亥'];
+  const colors = ['#50E3C2', '#FF2A6D', '#F8E71C', '#E6E6E6', '#4A90E2']; // Wood, Fire, Earth, Metal, Water
 
-  return (
-    <div className="flex flex-col items-center justify-center space-y-8 animate-in fade-in duration-500 relative z-20">
-      <div className="relative w-32 h-32 flex items-center justify-center">
-        <div className="absolute inset-0 border-t-2 border-b-2 border-[#DA205A] rounded-full animate-spin"></div>
-        <div className="absolute inset-4 border-l-2 border-r-2 border-white/30 rounded-full animate-spin reverse-spin"></div>
-        <div className="text-[#DA205A] text-2xl font-bold font-inter animate-pulse">AI</div>
-      </div>
-      <div className="text-center space-y-2">
-        <h3 className="text-2xl font-bold font-inter">Quantum Divination in Progress</h3>
-        <p className="text-[#DA205A] font-mono text-sm h-6">{text}<span className="caret">_</span></p>
-      </div>
-    </div>
-  );
+  let hash = 0;
+  const str = name + dateStr;
+  for (let i = 0; i < str.length; i++) { hash = str.charCodeAt(i) + ((hash << 5) - hash); }
+  hash = Math.abs(hash);
+
+  return {
+    pillars: [
+      { name: 'Year', stem: stems[hash % 10], branch: branches[hash % 12], color: colors[hash % 5] },
+      { name: 'Month', stem: stems[(hash+1) % 10], branch: branches[(hash+1) % 12], color: colors[(hash+1) % 5] },
+      { name: 'Day', stem: stems[(hash+2) % 10], branch: branches[(hash+2) % 12], color: colors[(hash+2) % 5], isDayMaster: true },
+      { name: 'Hour', stem: stems[(hash+3) % 10], branch: branches[(hash+3) % 12], color: colors[(hash+3) % 5] }
+    ],
+    dayMaster: `${stems[(hash+2) % 10]} Day Master`
+  };
 };
 
 // --- Main App Component ---
 export default function App() {
   const { x, y } = useSmoothMouse();
-  
-  // App States: 'INPUT', 'ANALYZING', 'RESULT'
-  const [appState, setAppState] = useState('INPUT');
-  const[formData, setFormData] = useState({
-    name: '',
-    gender: 'Male',
-    birthDate: '',
-    birthTime: '12:00'
-  });
+  const [appState, setAppState] = useState('INPUT'); // INPUT, ANALYZING, RESULT
+  const [formData, setFormData] = useState({ name: '', gender: 'Male', birthDate: '', birthTime: '12:00' });
+  const [baziResult, setBaziResult] = useState(null);
 
-  const timeOptions =[
-    { label: "子时 (23:00-00:59)", value: "Zi" },
-    { label: "丑时 (01:00-02:59)", value: "Chou" },
-    { label: "寅时 (03:00-04:59)", value: "Yin" },
-    { label: "卯时 (05:00-06:59)", value: "Mao" },
-    { label: "辰时 (07:00-08:59)", value: "Chen" },
-    { label: "巳时 (09:00-10:59)", value: "Si" },
-    { label: "午时 (11:00-12:59)", value: "Wu" },
-    { label: "未时 (13:00-14:59)", value: "Wei" },
-    { label: "申时 (15:00-16:59)", value: "Shen" },
-    { label: "酉时 (17:00-18:59)", value: "You" },
-    { label: "戌时 (19:00-20:59)", value: "Xu" },
-    { label: "亥时 (21:00-22:59)", value: "Hai" }
+  const timeOptions = [
+    { label: "子时 (23:00-00:59)", value: "Zi" }, { label: "丑时 (01:00-02:59)", value: "Chou" },
+    { label: "寅时 (03:00-04:59)", value: "Yin" }, { label: "卯时 (05:00-06:59)", value: "Mao" },
+    { label: "辰时 (07:00-08:59)", value: "Chen" }, { label: "巳时 (09:00-10:59)", value: "Si" },
+    { label: "午时 (11:00-12:59)", value: "Wu" }, { label: "未时 (13:00-14:59)", value: "Wei" },
+    { label: "申时 (15:00-16:59)", value: "Shen" }, { label: "酉时 (17:00-18:59)", value: "You" },
+    { label: "戌时 (19:00-20:59)", value: "Xu" }, { label: "亥时 (21:00-22:59)", value: "Hai" }
   ];
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if(!formData.name || !formData.birthDate) return;
-    
+    if (!formData.name || !formData.birthDate) return;
     setAppState('ANALYZING');
-    // Simulate API Call / Deep Calculation
+    
     setTimeout(() => {
+      setBaziResult(generateBazi(formData.name, formData.birthDate));
       setAppState('RESULT');
-    }, 4500);
-  };
-
-  const handleReset = () => {
-    setFormData({ name: '', gender: 'Male', birthDate: '', birthTime: '12:00' });
-    setAppState('INPUT');
+    }, 4000);
   };
 
   return (
@@ -336,187 +256,136 @@ export default function App() {
       <GlobalStyles />
       
       {/* Neon Cursor */}
-      <div 
-        className="fixed top-0 left-0 w-8 h-8 rounded-full pointer-events-none z-[100] mix-blend-screen hidden md:block"
-        style={{ 
-          transform: `translate(${x - 16}px, ${y - 16}px)`,
-          background: 'radial-gradient(circle, rgba(218,32,90,0.8) 0%, rgba(218,32,90,0) 70%)',
-          boxShadow: '0 0 20px 5px rgba(218,32,90,0.4)'
-        }}
+      <div className="fixed top-0 left-0 w-8 h-8 rounded-full pointer-events-none z-[100] mix-blend-screen hidden md:block"
+        style={{ transform: `translate(${x - 16}px, ${y - 16}px)`, background: 'radial-gradient(circle, #05D9E8 0%, transparent 70%)', boxShadow: '0 0 20px 2px rgba(5,217,232,0.3)' }}
       />
 
-      <div className="glow-bg top-0" />
       <AlgorithmicDonut />
 
-      <main className="relative min-h-screen flex flex-col items-center justify-center px-4 py-20 z-10">
+      {/* Dynamic Glow Background */}
+      <div className="fixed inset-0 flex justify-center items-center pointer-events-none z-0">
+        <div className="w-[80vw] h-[80vh] bg-gradient-to-br from-[#FF2A6D]/10 to-[#05D9E8]/10 rounded-full blur-[100px] opacity-50 mix-blend-screen"></div>
+      </div>
+
+      <main className="relative min-h-screen flex flex-col items-center justify-center p-6 z-10">
         
-        {/* Header / Logo */}
-        <div className="absolute top-8 left-8">
-          <h1 className="text-2xl font-inter font-black tracking-tighter uppercase text-white">
-            SpaceX<span className="text-[#DA205A]">YANG</span> AI
-          </h1>
+        {/* Top Header */}
+        <div className="absolute top-8 left-8 flex items-center gap-3">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#FF2A6D] to-[#05D9E8] animate-pulse shadow-[0_0_15px_rgba(5,217,232,0.5)]"></div>
+          <h1 className="text-xl font-bold tracking-tight text-white">SPACEX<span className="opacity-50">YANG</span></h1>
         </div>
 
-        {/* State: INPUT FORM */}
+        {/* STATE: INPUT FORM */}
         {appState === 'INPUT' && (
-          <div className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-12 items-center animate-in fade-in zoom-in-95 duration-500">
-            {/* Left: Hero Copy */}
-            <div className="text-left space-y-6 pointer-events-none">
-              <h1 className="text-5xl md:text-7xl font-inter font-black tracking-tighter uppercase leading-tight">
-                Decode Your<br/>
-                <span className="text-transparent[-webkit-text-stroke:1px_#DA205A]">Destiny</span> Code
+          <div className="w-full max-w-5xl grid grid-cols-1 md:grid-cols-2 gap-16 items-center animate-in fade-in zoom-in-95 duration-700">
+            <div className="space-y-6">
+              <h1 className="text-6xl md:text-7xl font-black tracking-tighter leading-[1.1]">
+                Destiny,<br/>
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FF2A6D] to-[#05D9E8]">Decoded.</span>
               </h1>
-              <p className="text-white/60 text-lg leading-relaxed font-inter">
-                Combining traditional BaZi matrix algorithms with cutting-edge AI logic models. Input your genesis parameters to initialize your personal fate architecture.
+              <p className="text-xl text-white/50 font-light leading-relaxed max-w-md">
+                Experience the intersection of ancient metaphysical architecture and modern AI logic engines.
               </p>
             </div>
 
-            {/* Right: Input Form */}
-            <form onSubmit={handleSubmit} className="glass-panel p-8 relative z-20 shadow-[0_0_50px_rgba(218,32,90,0.05)]">
-              <h2 className="text-2xl font-bold font-inter mb-6 text-white border-b border-white/10 pb-4">Initialize Parameters</h2>
+            <form onSubmit={handleSubmit} className="apple-glass p-10 w-full relative group">
+              <h2 className="text-2xl font-bold mb-8">Initialize Engine</h2>
+              <AppleInput label="Identity" placeholder="Your name" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
               
-              <InputField 
-                label="Identity / Name" 
-                placeholder="Enter your name" 
-                value={formData.name} 
-                onChange={(e) => setFormData({...formData, name: e.target.value})} 
-              />
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col space-y-2 mb-4">
-                  <label className="text-xs text-white/60 tracking-widest uppercase font-bold">Gender</label>
-                  <div className="flex bg-black/40 border border-white/10 rounded-lg overflow-hidden">
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                <div className="flex flex-col">
+                  <label className="text-[11px] font-semibold text-white/50 tracking-widest uppercase mb-2 pl-1">Gender</label>
+                  <div className="flex bg-white/5 border border-white/10 rounded-xl overflow-hidden p-1 backdrop-blur-md">
                     {['Male', 'Female'].map(g => (
-                      <button
-                        key={g} type="button"
-                        onClick={() => setFormData({...formData, gender: g})}
-                        className={`flex-1 py-3 text-sm font-bold transition-colors cursor-none ${formData.gender === g ? 'bg-[#DA205A] text-white' : 'text-white/40 hover:text-white/80'}`}
-                      >
+                      <button key={g} type="button" onClick={() => setFormData({...formData, gender: g})}
+                        className={`flex-1 py-2.5 text-sm font-semibold rounded-lg transition-all cursor-none ${formData.gender === g ? 'bg-white text-black shadow-md' : 'text-white/50 hover:text-white'}`}>
                         {g}
                       </button>
                     ))}
                   </div>
                 </div>
-
-                <InputField 
-                  label="Birth Date" 
-                  type="date" 
-                  value={formData.birthDate} 
-                  onChange={(e) => setFormData({...formData, birthDate: e.target.value})} 
-                />
+                <AppleInput label="Genesis Date" type="date" value={formData.birthDate} onChange={e => setFormData({...formData, birthDate: e.target.value})} />
               </div>
 
-              <InputField 
-                label="Birth Time (Hour)" 
-                type="select" 
-                options={timeOptions}
-                value={formData.birthTime} 
-                onChange={(e) => setFormData({...formData, birthTime: e.target.value})} 
-              />
+              <AppleInput label="Temporal Coordinates" type="select" options={timeOptions} value={formData.birthTime} onChange={e => setFormData({...formData, birthTime: e.target.value})} />
 
-              <MagneticButton type="submit" className="w-full mt-6 flex justify-center py-4 bg-white/10 text-lg font-bold">
-                GENERATE AI REPORT
+              <MagneticButton type="submit" className="w-full mt-4 text-[#000000] bg-white hover:bg-white/90 border-transparent shadow-[0_0_20px_rgba(255,255,255,0.2)]">
+                Initialize Computation
               </MagneticButton>
             </form>
           </div>
         )}
 
-        {/* State: ANALYZING */}
+        {/* STATE: ANALYZING (Apple Intelligence Style) */}
         {appState === 'ANALYZING' && (
-           <AnalyzingState />
+          <div className="flex flex-col items-center justify-center space-y-12 animate-in fade-in duration-700">
+            <div className="relative w-64 h-64 flex items-center justify-center">
+              <div className="ai-glow"></div>
+              <div className="absolute inset-0 rounded-full border border-white/10 bg-white/5 backdrop-blur-sm animate-pulse"></div>
+              <div className="text-white text-3xl font-black tracking-tighter z-10">AI</div>
+            </div>
+            <div className="text-center space-y-3">
+              <h3 className="text-3xl font-bold tracking-tight">Synthesizing Matrix</h3>
+              <p className="text-[#05D9E8] font-mono text-sm uppercase tracking-widest animate-pulse">Running Neural Divination Model...</p>
+            </div>
+          </div>
         )}
 
-        {/* State: RESULT DASHBOARD */}
-        {appState === 'RESULT' && (
-          <div className="w-full max-w-6xl animate-in slide-in-from-bottom-10 fade-in duration-700 relative z-20">
-            <div className="flex justify-between items-end mb-8 border-b border-white/10 pb-4">
+        {/* STATE: RESULT */}
+        {appState === 'RESULT' && baziResult && (
+          <div className="w-full max-w-6xl animate-in slide-in-from-bottom-10 fade-in duration-700">
+            <div className="flex justify-between items-center mb-10">
               <div>
-                <h2 className="text-4xl font-inter font-black uppercase text-white">System Output</h2>
-                <p className="text-[#DA205A] text-sm mt-1 tracking-widest">SUBJECT: {formData.name.toUpperCase()} // GENDER: {formData.gender.toUpperCase()}</p>
+                <h2 className="text-4xl font-black tracking-tight">System Output</h2>
+                <p className="text-white/50 text-sm mt-2 tracking-wide">ID: {formData.name} &nbsp;|&nbsp; DOB: {formData.birthDate}</p>
               </div>
-              <MagneticButton onClick={handleReset} className="text-xs px-4 py-2 border-[#DA205A]/30 text-[#DA205A]">
-                [ RECALCULATE ]
+              <MagneticButton onClick={() => setAppState('INPUT')} className="px-6 py-2 text-xs text-white bg-transparent">
+                Reset Matrix
               </MagneticButton>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              
-              {/* Pillar Matrix (BaZi) */}
-              <div className="lg:col-span-1 glass-panel p-6 space-y-6">
-                <h3 className="text-sm text-white/50 tracking-[0.2em] font-bold uppercase mb-4">Four Pillars Matrix</h3>
-                <div className="grid grid-cols-4 gap-2 text-center">
-                  <div className="space-y-2">
-                    <div className="text-xs text-white/40">Year</div>
-                    <div className="text-xl font-bold text-white border border-white/10 bg-black/50 py-3 rounded">癸</div>
-                    <div className="text-xl font-bold text-white border border-white/10 bg-black/50 py-3 rounded">卯</div>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="text-xs text-white/40">Month</div>
-                    <div className="text-xl font-bold text-white border border-white/10 bg-black/50 py-3 rounded">甲</div>
-                    <div className="text-xl font-bold text-white border border-white/10 bg-black/50 py-3 rounded">寅</div>
-                  </div>
-                  <div className="space-y-2 relative">
-                    <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-[10px] text-[#DA205A] whitespace-nowrap">Day Master</div>
-                    <div className="text-xs text-white/40">Day</div>
-                    <div className="text-xl font-bold text-[#DA205A] border border-[#DA205A]/50 bg-[#DA205A]/10 py-3 rounded shadow-[0_0_15px_rgba(218,32,90,0.2)]">丁</div>
-                    <div className="text-xl font-bold text-white border border-white/10 bg-black/50 py-3 rounded">亥</div>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="text-xs text-white/40">Hour</div>
-                    <div className="text-xl font-bold text-white border border-white/10 bg-black/50 py-3 rounded">庚</div>
-                    <div className="text-xl font-bold text-white border border-white/10 bg-black/50 py-3 rounded">子</div>
-                  </div>
-                </div>
-
-                <div className="pt-6 border-t border-white/10">
-                   <h3 className="text-sm text-white/50 tracking-[0.2em] font-bold uppercase mb-3">Elemental Balance</h3>
-                   <div className="space-y-3 text-xs font-mono">
-                     <div className="flex justify-between items-center"><span className="text-red-400">Fire (Fire)</span> <div className="flex-1 h-1 bg-white/10 mx-3 rounded"><div className="w-[80%] h-full bg-red-400 rounded"></div></div> <span>80%</span></div>
-                     <div className="flex justify-between items-center"><span className="text-green-400">Wood (Wood)</span> <div className="flex-1 h-1 bg-white/10 mx-3 rounded"><div className="w-[60%] h-full bg-green-400 rounded"></div></div> <span>60%</span></div>
-                     <div className="flex justify-between items-center"><span className="text-blue-400">Water (Water)</span> <div className="flex-1 h-1 bg-white/10 mx-3 rounded"><div className="w-[40%] h-full bg-blue-400 rounded"></div></div> <span>40%</span></div>
-                     <div className="flex justify-between items-center"><span className="text-yellow-400">Earth (Earth)</span> <div className="flex-1 h-1 bg-white/10 mx-3 rounded"><div className="w-[20%] h-full bg-yellow-400 rounded"></div></div> <span>20%</span></div>
-                     <div className="flex justify-between items-center"><span className="text-gray-400">Metal (Metal)</span> <div className="flex-1 h-1 bg-white/10 mx-3 rounded"><div className="w-[10%] h-full bg-gray-400 rounded"></div></div> <span>10%</span></div>
-                   </div>
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              {/* Pillars Widget */}
+              <div className="lg:col-span-5 apple-glass p-8 flex flex-col justify-center">
+                <h3 className="text-xs text-white/50 tracking-widest font-bold uppercase mb-8">Four Pillars Architecture</h3>
+                <div className="grid grid-cols-4 gap-4 text-center">
+                  {baziResult.pillars.map((pillar, idx) => (
+                    <div key={idx} className="space-y-3 relative group">
+                      {pillar.isDayMaster && (
+                         <div className="absolute -top-8 left-1/2 -translate-x-1/2 text-[10px] font-bold text-[#FF2A6D] whitespace-nowrap bg-[#FF2A6D]/10 px-2 py-1 rounded-full border border-[#FF2A6D]/30">Day Master</div>
+                      )}
+                      <div className="text-xs text-white/40 font-mono">{pillar.name}</div>
+                      <div className="text-2xl font-bold p-4 rounded-2xl bg-black/40 border border-white/5 transition-all group-hover:scale-105" style={{ color: pillar.color, boxShadow: `0 0 20px ${pillar.color}20` }}>{pillar.stem}</div>
+                      <div className="text-2xl font-bold p-4 rounded-2xl bg-black/40 border border-white/5 transition-all group-hover:scale-105">{pillar.branch}</div>
+                    </div>
+                  ))}
                 </div>
               </div>
 
-              {/* AI Report Texts */}
-              <div className="lg:col-span-2 space-y-6">
-                
-                <div className="glass-panel p-8 relative overflow-hidden group">
-                  <div className="absolute top-0 left-0 w-1 h-full bg-[#DA205A]"></div>
-                  <h3 className="text-xl font-inter font-bold text-white mb-3">Core Identity & Personality</h3>
+              {/* Analysis Widgets */}
+              <div className="lg:col-span-7 grid grid-cols-1 gap-6">
+                <div className="apple-glass p-8 relative overflow-hidden">
+                  <div className="absolute left-0 top-0 w-1 h-full bg-gradient-to-b from-[#FF2A6D] to-[#05D9E8]"></div>
+                  <h3 className="text-xl font-bold mb-4">Core Algorithm: {baziResult.dayMaster}</h3>
                   <p className="text-white/70 text-sm leading-relaxed">
-                    Based on your "Ding Fire" (丁火) Day Master, you possess the nature of a flickering candle or starlight—illuminating, insightful, and highly adaptable. Unlike a raging forest fire, your intellect is precise and focused. The strong presence of Wood in your chart acts as fuel, granting you a profound capacity for continuous learning and extreme resilience. However, you must guard against intellectual burnout.
+                    Based on the computational analysis of your Day Master, your architectural baseline is highly analytical and resilient. You function optimally in environments requiring extreme precision and logical structuring. The algorithm detects a high capacity for learning (Input elements) and an impending surge in execution energy (Output/Wealth elements) in your upcoming life cycles. 
                   </p>
                 </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="glass-panel p-6">
-                    <h3 className="text-lg font-inter font-bold text-white mb-3 flex items-center gap-2">
-                      <span className="text-[#DA205A]">↳</span> Wealth & Career
-                    </h3>
-                    <p className="text-white/60 text-sm leading-relaxed">
-                      Metal represents your wealth element. While currently sparse in the base chart, your upcoming Da Yun (10-year luck pillars) indicates a surge in Metal energy starting 2027. Roles involving bridging technology with human interaction (like PM or FAE) align perfectly with your chart's need to "illuminate" complex logic for others.
-                    </p>
-                  </div>
-
-                  <div className="glass-panel p-6">
-                    <h3 className="text-lg font-inter font-bold text-white mb-3 flex items-center gap-2">
-                      <span className="text-[#DA205A]">↳</span> Relationships & Network
-                    </h3>
-                    <p className="text-white/60 text-sm leading-relaxed">
-                      Water elements signify authority and discipline in your chart. You naturally attract mentors who are older or hold structured positions. In partnerships, you seek someone who can provide grounding Earth energy to stabilize your rapid, fire-driven thought processes.
-                    </p>
-                  </div>
-                </div>
                 
-                <div className="text-center pt-4">
-                  <span className="text-xs text-white/30 font-mono">* AI generated analysis based on traditional Bazi algorithms. For entertainment and psychological guidance.</span>
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="apple-glass p-6 hover:bg-white/10 transition-colors">
+                    <h4 className="text-sm font-bold text-[#05D9E8] mb-2 uppercase tracking-wide">Career Vector</h4>
+                    <p className="text-white/60 text-sm leading-relaxed">Highly suited for roles bridging hard engineering with abstract product strategy (PM/FAE). Your code executes best when translating tech into human value.</p>
+                  </div>
+                  <div className="apple-glass p-6 hover:bg-white/10 transition-colors">
+                    <h4 className="text-sm font-bold text-[#FF2A6D] mb-2 uppercase tracking-wide">Optimization</h4>
+                    <p className="text-white/60 text-sm leading-relaxed">Avoid infinite loops in intellectual pursuits. Ground your computational power in physical execution and market feedback to unlock maximum ROI.</p>
+                  </div>
                 </div>
               </div>
-
             </div>
+            
+            <p className="text-center mt-12 text-xs text-white/30 font-mono">Powered by SpaceX-YANG AI Engine v2.0</p>
           </div>
         )}
       </main>
