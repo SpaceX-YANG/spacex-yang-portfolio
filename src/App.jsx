@@ -58,7 +58,7 @@ const GlobalStyles = () => (
 
 // --- Custom Hook: Smooth Neon Cursor ---
 const useSmoothMouse = () => {
-  const[mousePosition, setMousePosition] = useState({ x: -100, y: -100 });
+  const [mousePosition, setMousePosition] = useState({ x: -100, y: -100 });
   const targetPosition = useRef({ x: -100, y: -100 });
 
   useEffect(() => {
@@ -76,14 +76,13 @@ const useSmoothMouse = () => {
     };
     render();
     return () => { window.removeEventListener('mousemove', handleMouseMove); cancelAnimationFrame(animationId); };
-  },[]);
+  }, []);
   return mousePosition;
 };
 
 // --- Component: Interactive 3D Particle Donut ---
 const AlgorithmicDonut = () => {
   const canvasRef = useRef(null);
-  // 用全局鼠标坐标，解决 pointer-events-none 导致无法交互的问题
   const mouseRef = useRef({ x: -1000, y: -1000 });
 
   useEffect(() => {
@@ -92,7 +91,7 @@ const AlgorithmicDonut = () => {
     let width = window.innerWidth; let height = window.innerHeight;
     canvas.width = width; canvas.height = height;
 
-    const particles =[];
+    const particles = [];
     const density = 45;
     for (let i = 0; i < density; i++) {
       for (let j = 0; j < density; j++) {
@@ -115,7 +114,6 @@ const AlgorithmicDonut = () => {
       const cosY = Math.cos(angleY); const sinY = Math.sin(angleY);
 
       particles.forEach(p => {
-        // 全局鼠标排斥交互计算
         const dx = p.x - mouseRef.current.x;
         const dy = p.y - mouseRef.current.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
@@ -138,7 +136,7 @@ const AlgorithmicDonut = () => {
         const screenY = height / 2 + y1 * scale;
 
         ctx.globalAlpha = Math.max(0.05, (scale - 0.5) * 0.6);
-        ctx.fillStyle = '#05D9E8'; // 偏青色的科技感粒子
+        ctx.fillStyle = '#05D9E8'; 
         ctx.beginPath();
         ctx.arc(screenX, screenY, Math.max(0.5, 1.5 * scale), 0, Math.PI * 2);
         ctx.fill();
@@ -149,7 +147,6 @@ const AlgorithmicDonut = () => {
 
     const handleResize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; };
     const handleGlobalMouseMove = (e) => {
-      // 映射屏幕坐标到 3D 空间中心
       mouseRef.current = {
         x: (e.clientX - width / 2), 
         y: (e.clientY - height / 2)
@@ -157,14 +154,14 @@ const AlgorithmicDonut = () => {
     };
 
     window.addEventListener('resize', handleResize);
-    window.addEventListener('mousemove', handleGlobalMouseMove); // 绑定到全局 window
+    window.addEventListener('mousemove', handleGlobalMouseMove); 
 
     return () => { 
       window.removeEventListener('resize', handleResize); 
       window.removeEventListener('mousemove', handleGlobalMouseMove);
       cancelAnimationFrame(animationId); 
     };
-  },[]);
+  }, []);
   
   return <canvas ref={canvasRef} className="fixed inset-0 z-0 pointer-events-none opacity-40 mix-blend-screen" />;
 };
@@ -174,15 +171,10 @@ const TheoryModal = ({ theory, onClose }) => {
   if (!theory) return null;
 
   return (
-    // z-[9000] 确保弹窗极高，但低于鼠标
     <div className="fixed inset-0 z-[9000] flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-300">
-      {/* Blurred Backdrop */}
       <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={onClose}></div>
       
-      {/* Modal Container */}
       <div className="relative w-full max-w-5xl max-h-[85vh] apple-glass flex flex-col animate-in zoom-in-95 duration-500">
-        
-        {/* Header */}
         <div className="flex justify-between items-center p-6 sm:p-8 border-b border-white/10 bg-white/5 shrink-0 rounded-t-2xl">
           <div>
             <span className="font-mono text-sm text-[#05D9E8] font-bold tracking-widest uppercase mb-2 block">{theory.subtitle}</span>
@@ -193,7 +185,6 @@ const TheoryModal = ({ theory, onClose }) => {
           </button>
         </div>
 
-        {/* Content Body */}
         <div className="p-6 sm:p-10 overflow-y-auto custom-scrollbar space-y-10 rounded-b-2xl">
           <p className="text-lg sm:text-xl text-white/80 leading-relaxed font-light border-l-4 border-[#FF2A6D] pl-4">
             {theory.details.intro}
@@ -201,13 +192,12 @@ const TheoryModal = ({ theory, onClose }) => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {theory.details.sections.map((sec, idx) => (
-              <div key={idx} className="bg-white/5 border border-white/5 rounded-2xl p-6 hover:bg-white/10 transition-colors shadow-lg">
+              <div key={idx} className={`bg-white/5 border border-white/5 rounded-2xl p-6 hover:bg-white/10 transition-colors shadow-lg ${sec.fullWidth ? 'md:col-span-2' : ''}`}>
                 <h4 className="text-[#05D9E8] text-xl font-bold mb-4 flex items-center gap-3">
                   <span className="w-2 h-6 bg-gradient-to-b from-[#05D9E8] to-[#FF2A6D] rounded-full"></span>
                   {sec.heading}
                 </h4>
                 <div className="text-white/70 leading-relaxed text-sm space-y-2">
-                  {/* Handle line breaks for rich formatting */}
                   {sec.body.split('\n').map((line, i) => (
                     <p key={i} className={line.startsWith('•') || line.includes('：') ? 'ml-2' : ''}>
                       {line.includes('：') ? (
@@ -254,10 +244,10 @@ const TheoryCard = ({ theory, onClick }) => (
 // --- Main App Component ---
 export default function App() {
   const { x, y } = useSmoothMouse();
-  const[activeTheory, setActiveTheory] = useState(null);
+  const [activeTheory, setActiveTheory] = useState(null);
 
-  // Content Knowledge Base from Fatemaster.ai logic
-  const theories =[
+  // Content Knowledge Base
+  const theories = [
     {
       id: "01",
       title: "五行理论",
@@ -267,7 +257,7 @@ export default function App() {
       colorClass: "from-[#FF2A6D] to-transparent",
       details: {
         intro: "五行（木、火、土、金、水）是中国古代哲学体系的核心基本运行协议。它们并非指代具象的物理材质，而是描述宇宙能量在时间与空间中的五种动态演变阶段（Phases of Energy）。一切算法皆源于此。",
-        sections:[
+        sections: [
           { 
             heading: "五大基本状态 (Energy Phases)", 
             body: "木 (Wood)：扩张与生发，代表向上向外的能量，对应春天与底层生长逻辑。\n火 (Fire)：释放与巅峰，代表能量的极速辐射与最高活跃度，对应夏天。\n土 (Earth)：稳固与转化，代表能量的缓冲、承载与中转，属于过渡期枢纽。\n金 (Metal)：收敛与肃杀，代表能量的向内收缩、沉淀与提纯，对应秋天。\n水 (Water)：潜藏与休眠，代表能量的极度静止、内敛与孕育，对应冬天。" 
@@ -291,14 +281,25 @@ export default function App() {
       id: "02",
       title: "十天干理论",
       subtitle: "10 Heavenly Vectors",
-      desc: "Ten spatial vectors representing the surface-level logic and explicit manifestations of cosmic energy in real-time.",
+      desc: "Ten spatial vectors representing the surface-level logic and explicit manifestations of cosmic energy. The 'API' of destiny.",
       isLarge: false,
       colorClass: "from-[#05D9E8] to-transparent",
       details: {
-        intro: "十天干（甲、乙、丙、丁、戊、己、庚、辛、壬、癸）是八字命理中表层显性数据的载体，代表天体运行对地球产生的直接能量场。",
-        sections:[
-          { heading: "阴阳参数分配", body: "五行能量被进一步细分为阴阳（如：甲为阳木，乙为阴木）。阳干象征猛烈、显性、刚硬的宏观力量；阴干象征内敛、隐性、柔韧的微观力量。" },
-          { heading: "日主核心 (Day Master)", body: "出生日的天干被称为“日主”，它是整个八字架构的“CPU”。日主直接代表了个体的绝对核心自我、基础性格底色与底层的行为指令集。" }
+        intro: "十天干（甲、乙、丙、丁、戊、己、庚、辛、壬、癸）是八字命理中表层显性数据的载体。如果五行是底层协议，天干就是具象化的 API 接口。它们不仅代表天体运行对地球产生的直接能量场，更是定义个体社会属性与外部行为模式的核心代码。",
+        sections: [
+          { 
+            heading: "五行与阴阳的具象化 (Yin & Yang Protocols)", 
+            body: "木系协议 (Wood)：甲（阳木/参天大树/刚直向上），乙（阴木/藤蔓花草/柔韧适应）。\n火系协议 (Fire)：丙（阳火/太阳之光/猛烈辐射），丁（阴火/星光烛火/精准聚焦）。\n土系协议 (Earth)：戊（阳土/高山城墙/稳固承载），己（阴土/田园沃土/孕育包容）。\n金系协议 (Metal)：庚（阳金/剑戟矿石/破坏重组），辛（阴金/珠宝首饰/精密切割）。\n水系协议 (Water)：壬（阳水/江河湖海/奔腾冲刷），癸（阴水/雨露云雾/渗透滋养）。",
+            fullWidth: true
+          },
+          { 
+            heading: "日元核心 (Day Master CPU)", 
+            body: "出生日的天干被称为“日主”或“日元”，它是整个八字架构的中央处理器 (CPU)。日主的五行属性直接决定了个体的底层逻辑、先天的性格底色以及与周围环境交互的默认指令集。" 
+          },
+          { 
+            heading: "天干五合 (Combination Logic)", 
+            body: "天干之间存在特定的化合反应（如：甲己合土，乙庚合金，丙辛合水，丁壬合木，戊癸合火）。这在系统中表现为能量的羁绊、妥协、联姻或资源的深度绑定。它往往决定了人生轨迹中的重大合作与情感走向。" 
+          }
         ]
       }
     },
@@ -311,7 +312,7 @@ export default function App() {
       colorClass: "from-[#FF2A6D] to-transparent",
       details: {
         intro: "十二地支（子丑寅卯辰巳午未申酉戌亥）代表地球自转与公转的时空刻度。它们不仅记录时间，更是复杂环境与隐藏资源的底层物理容器。",
-        sections:[
+        sections: [
           { heading: "时空四维映射", body: "在时间维度，十二地支精确映射了一天中的12个时辰与一年中的12个月份；在空间维度，它们严密对应着罗盘上的十二个地理方位（如子为正北，午为正南）。" },
           { heading: "藏干加密机制", body: "与天干纯粹的能量不同，地支如同一个“加密数据库”。每个地支内部隐藏着1到3个天干能量（藏干），代表了人生中错综复杂的隐藏剧本与潜在资源。" }
         ]
@@ -326,7 +327,7 @@ export default function App() {
       colorClass: "from-[#05D9E8] to-transparent",
       details: {
         intro: "十神是基于“日主”（核心自我）与其他干支发生五行生克关系后，衍生出的 10 种社会角色变量。它是将底层代码转化为真实人生事件的“中间件协议”。",
-        sections:[
+        sections: [
           { heading: "输出与反馈 (食伤/财星)", body: "食伤系统：日主生出的能量。代表才华展示、创新表达与商业嗅觉。\n财星系统：日主克制的能量。代表对物质的支配欲、现金流转化能力与劳动成果。" },
           { heading: "输入与压力 (印星/官杀)", body: "印星系统：生扶日主的能量。代表学历背景、系统庇护、信息摄入与精神深度。\n官杀系统：克制日主的能量。代表外部压力、事业阶层、管理规则与执行力。" }
         ]
@@ -341,7 +342,7 @@ export default function App() {
       colorClass: "from-[#FF2A6D] to-transparent",
       details: {
         intro: "刑冲会合是八字命盘中干支相互作用的动态触发算法。它们决定了静态的命运架构在遭遇外部时间流（流年大运）时，会发生怎样的状态突变。",
-        sections:[
+        sections: [
           { heading: "合并协议 (合与会)", body: "包含天干五合、地支六合、三合局等。代表能量的羁绊、合作与资源的深度整合。在现实中常触发结盟、投资到位或婚恋关系的建立。" },
           { heading: "冲突协议 (冲与刑)", body: "包含地支六冲、相刑等。代表能量的剧烈碰撞与旧系统的强制重组。虽然常伴随变动与阵痛，但这往往是打破阶层壁垒、实现跃迁的唯一途径。" }
         ]
@@ -356,7 +357,7 @@ export default function App() {
       colorClass: "from-[#05D9E8] to-transparent",
       details: {
         intro: "格局（Pattern）是八字命理的高层架构模式。通过分析日主与出生月令（系统核心环境变量）的相对关系，判断出该命局的最佳运行方式和商业变现路径。",
-        sections:[
+        sections: [
           { heading: "正格 (Standard Architectures)", body: "包括正官格、财格、印格等。这类架构运行稳定，遵循社会主流行事逻辑，讲究阴阳平衡与中庸之道，适合在成熟的企业体制内稳步攀升，属于长期复利型结构。" },
           { heading: "变格/从格 (Specialized Architectures)", body: "当某一种五行能量形成绝对垄断且无法平衡时，系统会放弃中庸，转而“顺从”这股极端能量（如从杀格、从财格）。这类架构风险极高，大起大落，但往往具备颠覆行业、创造极致成就的爆发力。" }
         ]
@@ -368,7 +369,7 @@ export default function App() {
     <>
       <GlobalStyles />
       
-      {/* Neon Cursor (z-[9999] 确保其永远在最顶层) */}
+      {/* Neon Cursor */}
       <div className="fixed top-0 left-0 w-6 h-6 rounded-full pointer-events-none z-[9999] mix-blend-screen hidden md:block"
         style={{ transform: `translate(${x - 12}px, ${y - 12}px)`, background: 'radial-gradient(circle, #05D9E8 0%, transparent 80%)', boxShadow: '0 0 15px 2px rgba(5,217,232,0.4)' }}
       />
@@ -384,16 +385,21 @@ export default function App() {
         
         {/* Header Area */}
         <header className="max-w-7xl mx-auto mb-20 animate-in fade-in slide-in-from-bottom-8 duration-700">
-          <div className="inline-block px-4 py-1.5 rounded-full border border-white/10 bg-white/5 backdrop-blur-md text-xs font-mono tracking-widest text-[#05D9E8] mb-6">
-            KNOWLEDGE BASE // V 3.0
-          </div>
-          <h1 className="text-5xl md:text-7xl lg:text-8xl font-black tracking-tighter leading-[1.05] mb-6">
-            Metaphysics,<br/>
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FF2A6D] to-[#05D9E8]">Deconstructed.</span>
+          {/* 这里直接替换成了 SpaceX-YANG 大标题 */}
+          <h1 className="text-6xl md:text-8xl lg:text-[10rem] font-black tracking-tighter leading-[0.9] mb-8">
+            SpaceX<br/>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FF2A6D] to-[#05D9E8]">-YANG</span>
           </h1>
-          <p className="text-xl md:text-2xl text-white/50 font-light max-w-2xl leading-relaxed">
-            Translating ancient Chinese metaphysical theorems into modern computational architecture. Click any module to explore the underlying logic.
-          </p>
+          
+          <div className="flex flex-col md:flex-row md:items-center gap-6 md:gap-8">
+            <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-white/90 whitespace-nowrap">
+              Metaphysics, Deconstructed.
+            </h2>
+            <div className="hidden md:block w-px h-12 bg-white/20"></div>
+            <p className="text-lg md:text-xl text-white/50 font-light max-w-xl leading-relaxed">
+              Translating ancient Chinese metaphysical theorems into modern computational architecture. Click any module to explore the underlying logic.
+            </p>
+          </div>
         </header>
 
         {/* Bento Grid Area */}
