@@ -21,15 +21,13 @@ const GlobalStyles = () => (
       font-family: 'SF Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     }
     
-    /* Hide scrollbar for main page, but custom for modal */
     ::-webkit-scrollbar { width: 0px; background: transparent; }
     
     .custom-scrollbar::-webkit-scrollbar { width: 6px; }
     .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-    .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 10px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
     .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(5, 217, 232, 0.5); }
     
-    /* Apple Glassmorphism Bento Box Style */
     .bento-card {
       background: rgba(28, 28, 30, 0.4);
       backdrop-filter: blur(24px);
@@ -48,12 +46,12 @@ const GlobalStyles = () => (
     }
     
     .apple-glass {
-      background: rgba(28, 28, 30, 0.7);
+      background: rgba(20, 20, 22, 0.85);
       backdrop-filter: blur(40px);
       -webkit-backdrop-filter: blur(40px);
       border: 1px solid rgba(255, 255, 255, 0.1);
       border-radius: 24px;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.8);
+      box-shadow: 0 20px 80px rgba(0,0,0,0.9);
     }
   `}</style>
 );
@@ -82,9 +80,12 @@ const useSmoothMouse = () => {
   return mousePosition;
 };
 
-// --- Component: Elegant 3D Particle Space ---
+// --- Component: Interactive 3D Particle Donut ---
 const AlgorithmicDonut = () => {
   const canvasRef = useRef(null);
+  // 用全局鼠标坐标，解决 pointer-events-none 导致无法交互的问题
+  const mouseRef = useRef({ x: -1000, y: -1000 });
+
   useEffect(() => {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
@@ -92,7 +93,7 @@ const AlgorithmicDonut = () => {
     canvas.width = width; canvas.height = height;
 
     const particles =[];
-    const density = 40;
+    const density = 45;
     for (let i = 0; i < density; i++) {
       for (let j = 0; j < density; j++) {
         const u = (i / density) * Math.PI * 2;
@@ -100,7 +101,7 @@ const AlgorithmicDonut = () => {
         const x = (250 + 80 * Math.cos(v)) * Math.cos(u);
         const y = (250 + 80 * Math.cos(v)) * Math.sin(u);
         const z = 80 * Math.sin(v);
-        particles.push({ x, y, z });
+        particles.push({ ox: x, oy: y, oz: z, x, y, z, vx: 0, vy: 0, vz: 0 });
       }
     }
 
@@ -114,6 +115,19 @@ const AlgorithmicDonut = () => {
       const cosY = Math.cos(angleY); const sinY = Math.sin(angleY);
 
       particles.forEach(p => {
+        // 全局鼠标排斥交互计算
+        const dx = p.x - mouseRef.current.x;
+        const dy = p.y - mouseRef.current.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 150) {
+          p.vx += (dx / dist) * 1.5;
+          p.vy += (dy / dist) * 1.5;
+        }
+        
+        p.vx += (p.ox - p.x) * 0.05; p.vy += (p.oy - p.y) * 0.05; p.vz += (p.oz - p.z) * 0.05;
+        p.vx *= 0.9; p.vy *= 0.9; p.vz *= 0.9;
+        p.x += p.vx; p.y += p.vy; p.z += p.vz;
+
         let y1 = p.y * cosX - p.z * sinX;
         let z1 = p.y * sinX + p.z * cosX;
         let x2 = p.x * cosY + z1 * sinY;
@@ -123,8 +137,8 @@ const AlgorithmicDonut = () => {
         const screenX = width / 2 + x2 * scale;
         const screenY = height / 2 + y1 * scale;
 
-        ctx.globalAlpha = Math.max(0.05, (scale - 0.5) * 0.4);
-        ctx.fillStyle = '#ffffff';
+        ctx.globalAlpha = Math.max(0.05, (scale - 0.5) * 0.6);
+        ctx.fillStyle = '#05D9E8'; // 偏青色的科技感粒子
         ctx.beginPath();
         ctx.arc(screenX, screenY, Math.max(0.5, 1.5 * scale), 0, Math.PI * 2);
         ctx.fill();
@@ -134,10 +148,25 @@ const AlgorithmicDonut = () => {
     render();
 
     const handleResize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; };
+    const handleGlobalMouseMove = (e) => {
+      // 映射屏幕坐标到 3D 空间中心
+      mouseRef.current = {
+        x: (e.clientX - width / 2), 
+        y: (e.clientY - height / 2)
+      };
+    };
+
     window.addEventListener('resize', handleResize);
-    return () => { window.removeEventListener('resize', handleResize); cancelAnimationFrame(animationId); };
+    window.addEventListener('mousemove', handleGlobalMouseMove); // 绑定到全局 window
+
+    return () => { 
+      window.removeEventListener('resize', handleResize); 
+      window.removeEventListener('mousemove', handleGlobalMouseMove);
+      cancelAnimationFrame(animationId); 
+    };
   },[]);
-  return <canvas ref={canvasRef} className="fixed inset-0 z-0 pointer-events-none opacity-40" />;
+  
+  return <canvas ref={canvasRef} className="fixed inset-0 z-0 pointer-events-none opacity-40 mix-blend-screen" />;
 };
 
 // --- Component: Detail Modal Overlay ---
@@ -145,40 +174,51 @@ const TheoryModal = ({ theory, onClose }) => {
   if (!theory) return null;
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-300">
+    // z-[9000] 确保弹窗极高，但低于鼠标
+    <div className="fixed inset-0 z-[9000] flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-300">
       {/* Blurred Backdrop */}
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose}></div>
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={onClose}></div>
       
       {/* Modal Container */}
-      <div className="relative w-full max-w-4xl max-h-[85vh] apple-glass flex flex-col animate-in zoom-in-95 duration-500">
+      <div className="relative w-full max-w-5xl max-h-[85vh] apple-glass flex flex-col animate-in zoom-in-95 duration-500">
         
         {/* Header */}
         <div className="flex justify-between items-center p-6 sm:p-8 border-b border-white/10 bg-white/5 shrink-0 rounded-t-2xl">
           <div>
             <span className="font-mono text-sm text-[#05D9E8] font-bold tracking-widest uppercase mb-2 block">{theory.subtitle}</span>
-            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-white">{theory.title}</h2>
+            <h2 className="text-3xl sm:text-5xl font-black tracking-tight text-white">{theory.title}</h2>
           </div>
-          <button onClick={onClose} className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors shrink-0">
+          <button onClick={onClose} className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors shrink-0 border border-white/20">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
           </button>
         </div>
 
         {/* Content Body */}
-        <div className="p-6 sm:p-8 overflow-y-auto custom-scrollbar space-y-8 rounded-b-2xl">
-          <p className="text-lg sm:text-xl text-white/80 leading-relaxed font-light">
+        <div className="p-6 sm:p-10 overflow-y-auto custom-scrollbar space-y-10 rounded-b-2xl">
+          <p className="text-lg sm:text-xl text-white/80 leading-relaxed font-light border-l-4 border-[#FF2A6D] pl-4">
             {theory.details.intro}
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {theory.details.sections.map((sec, idx) => (
-              <div key={idx} className="bg-black/30 border border-white/5 rounded-2xl p-6 hover:bg-black/50 transition-colors">
-                <h4 className="text-[#FF2A6D] text-lg font-bold mb-4 flex items-center gap-2">
-                  <span className="w-1.5 h-4 bg-gradient-to-b from-[#FF2A6D] to-[#05D9E8] rounded-full"></span>
+              <div key={idx} className="bg-white/5 border border-white/5 rounded-2xl p-6 hover:bg-white/10 transition-colors shadow-lg">
+                <h4 className="text-[#05D9E8] text-xl font-bold mb-4 flex items-center gap-3">
+                  <span className="w-2 h-6 bg-gradient-to-b from-[#05D9E8] to-[#FF2A6D] rounded-full"></span>
                   {sec.heading}
                 </h4>
-                <p className="text-white/60 leading-relaxed text-sm whitespace-pre-line">
-                  {sec.body}
-                </p>
+                <div className="text-white/70 leading-relaxed text-sm space-y-2">
+                  {/* Handle line breaks for rich formatting */}
+                  {sec.body.split('\n').map((line, i) => (
+                    <p key={i} className={line.startsWith('•') || line.includes('：') ? 'ml-2' : ''}>
+                      {line.includes('：') ? (
+                        <>
+                          <strong className="text-white">{line.split('：')[0]}：</strong>
+                          {line.split('：')[1]}
+                        </>
+                      ) : line}
+                    </p>
+                  ))}
+                </div>
               </div>
             ))}
           </div>
@@ -196,7 +236,7 @@ const TheoryCard = ({ theory, onClick }) => (
     <div>
       <div className="flex justify-between items-start mb-6">
         <span className="font-mono text-sm text-white/30 font-bold tracking-widest uppercase">SYS_LOG {theory.id}</span>
-        <div className="w-8 h-8 rounded-full border border-white/10 flex items-center justify-center text-white/30 group-hover:text-[#05D9E8] group-hover:border-[#05D9E8]/50 group-hover:bg-white/5 transition-all">
+        <div className="w-8 h-8 rounded-full border border-white/10 flex items-center justify-center text-white/30 group-hover:text-[#05D9E8] group-hover:border-[#05D9E8]/50 group-hover:bg-[#05D9E8]/10 transition-all">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
         </div>
       </div>
@@ -214,7 +254,7 @@ const TheoryCard = ({ theory, onClick }) => (
 // --- Main App Component ---
 export default function App() {
   const { x, y } = useSmoothMouse();
-  const [activeTheory, setActiveTheory] = useState(null);
+  const[activeTheory, setActiveTheory] = useState(null);
 
   // Content Knowledge Base from Fatemaster.ai logic
   const theories =[
@@ -226,11 +266,24 @@ export default function App() {
       isLarge: true,
       colorClass: "from-[#FF2A6D] to-transparent",
       details: {
-        intro: "五行（金、木、水、火、土）是中国古代哲学体系的核心基本运行协议。它并非指代具体的物理材质，而是描述宇宙能量状态和运动方式的五种底层抽象逻辑。",
+        intro: "五行（木、火、土、金、水）是中国古代哲学体系的核心基本运行协议。它们并非指代具象的物理材质，而是描述宇宙能量在时间与空间中的五种动态演变阶段（Phases of Energy）。一切算法皆源于此。",
         sections:[
-          { heading: "相生协议 (Generation Loop)", body: "一种能量对另一种能量的促进、滋生关系：木生火，火生土，土生金，金生水，水生木。如同系统中的正反馈循环，推动万物生长。" },
-          { heading: "相克协议 (Overcoming Loop)", body: "一种能量对另一种能量的抑制、约束关系：木克土，土克水，水克火，火克金，金克木。如同系统中的负反馈制衡，确保系统不会过载崩盘。" },
-          { heading: "生态应用", body: "在八字中，五行失衡会导致系统的 Bug（如健康问题或事业阻碍）。命理分析的本质，就是寻找用神（Patch 补丁）来重构五行平衡。" }
+          { 
+            heading: "五大基本状态 (Energy Phases)", 
+            body: "木 (Wood)：扩张与生发，代表向上向外的能量，对应春天与底层生长逻辑。\n火 (Fire)：释放与巅峰，代表能量的极速辐射与最高活跃度，对应夏天。\n土 (Earth)：稳固与转化，代表能量的缓冲、承载与中转，属于过渡期枢纽。\n金 (Metal)：收敛与肃杀，代表能量的向内收缩、沉淀与提纯，对应秋天。\n水 (Water)：潜藏与休眠，代表能量的极度静止、内敛与孕育，对应冬天。" 
+          },
+          { 
+            heading: "相生协议 (Generation Loop)", 
+            body: "系统内部的正反馈驱动链（Positive Feedback Loop），推动万物演进：\n木生火：扩张的能量被点燃转化为辐射。\n火生土：燃烧殆尽后能量沉淀为灰烬物质。\n土生金：沉淀的物质内部孕育出高密度结构。\n金生水：高密度结构在冷凝中转化为流体。\n水生木：流体滋养出新的生命扩张。" 
+          },
+          { 
+            heading: "相克协议 (Overcoming Loop)", 
+            body: "系统内部的负反馈制衡链（Negative Feedback Loop），防止单一能量过载崩盘：\n木克土：扩张的根系穿透并约束松散物质。\n土克水：致密的物质堤坝阻挡流体漫延。\n水克火：绝对的冷量扑灭辐射热能。\n火克金：高能热量破坏并融化高密度结构。\n金克木：高密度锐器切断并抑制扩张能量。" 
+          },
+          { 
+            heading: "系统级应用 (Architectural Application)", 
+            body: "在命运矩阵（八字）中，五行力量的绝对平衡是不存在的。系统分析师（命理师）通过计算原局五行的权重，找出系统的性能瓶颈（病），并推导出能让系统恢复动态平衡的干预参数（药，即“用神”）。" 
+          }
         ]
       }
     },
@@ -242,10 +295,10 @@ export default function App() {
       isLarge: false,
       colorClass: "from-[#05D9E8] to-transparent",
       details: {
-        intro: "十天干是八字命理中表层显性数据的载体，代表天体运行对地球产生的直接能量场。按顺序分为：甲、乙、丙、丁、戊、己、庚、辛、壬、癸。",
+        intro: "十天干（甲、乙、丙、丁、戊、己、庚、辛、壬、癸）是八字命理中表层显性数据的载体，代表天体运行对地球产生的直接能量场。",
         sections:[
-          { heading: "阴阳五行映射", body: "甲乙同属木（甲阳乙阴）；丙丁同属火；戊己同属土；庚辛同属金；壬癸同属水。阳干如猛烈之势，阴干如内敛之能。" },
-          { heading: "日主核心 (Day Master)", body: "出生日的天干被称为“日主”，是整个八字架构的“CPU”，代表个体的绝对核心自我、基础性格与底层指令集。" }
+          { heading: "阴阳参数分配", body: "五行能量被进一步细分为阴阳（如：甲为阳木，乙为阴木）。阳干象征猛烈、显性、刚硬的宏观力量；阴干象征内敛、隐性、柔韧的微观力量。" },
+          { heading: "日主核心 (Day Master)", body: "出生日的天干被称为“日主”，它是整个八字架构的“CPU”。日主直接代表了个体的绝对核心自我、基础性格底色与底层的行为指令集。" }
         ]
       }
     },
@@ -259,8 +312,8 @@ export default function App() {
       details: {
         intro: "十二地支（子丑寅卯辰巳午未申酉戌亥）代表地球自转与公转的时空刻度。它们不仅记录时间，更是复杂环境与隐藏资源的底层物理容器。",
         sections:[
-          { heading: "时空维度", body: "在时间上，十二地支精确映射了一天中的12个时辰与一年中的12个月份；在空间上，它们严密对应着罗盘上的各个地理方位。" },
-          { heading: "藏干机制 (Hidden Stems)", body: "与天干纯粹的能量不同，地支如同一个“加密数据库”，每个地支内部隐藏着1到3个天干能量（藏干），代表了人生中错综复杂的隐藏剧本。" }
+          { heading: "时空四维映射", body: "在时间维度，十二地支精确映射了一天中的12个时辰与一年中的12个月份；在空间维度，它们严密对应着罗盘上的十二个地理方位（如子为正北，午为正南）。" },
+          { heading: "藏干加密机制", body: "与天干纯粹的能量不同，地支如同一个“加密数据库”。每个地支内部隐藏着1到3个天干能量（藏干），代表了人生中错综复杂的隐藏剧本与潜在资源。" }
         ]
       }
     },
@@ -272,12 +325,10 @@ export default function App() {
       isLarge: false,
       colorClass: "from-[#05D9E8] to-transparent",
       details: {
-        intro: "十神是基于“日主”（核心自我）与其他干支发生生克关系后，衍生出的10种社会角色变量。它是将底层代码转化为真实人生事件（财富、权力、性格）的中间件协议。",
+        intro: "十神是基于“日主”（核心自我）与其他干支发生五行生克关系后，衍生出的 10 种社会角色变量。它是将底层代码转化为真实人生事件的“中间件协议”。",
         sections:[
-          { heading: "官杀系统 (Power)", body: "克制日主的能量。代表事业发展、抗压能力、管理权威，以及女命中的异性缘分。" },
-          { heading: "财星系统 (Wealth)", body: "日主克制的能量。代表对物质的支配欲、现金流转化能力，以及男命中的异性缘分。" },
-          { heading: "食伤系统 (Output)", body: "日主生出的能量。代表才华展示、创新表达、反叛精神与商业嗅觉。" },
-          { heading: "印星系统 (Resource)", body: "生扶日主的能量。代表学历背景、长辈贵人、系统庇护与精神世界的深度。" }
+          { heading: "输出与反馈 (食伤/财星)", body: "食伤系统：日主生出的能量。代表才华展示、创新表达与商业嗅觉。\n财星系统：日主克制的能量。代表对物质的支配欲、现金流转化能力与劳动成果。" },
+          { heading: "输入与压力 (印星/官杀)", body: "印星系统：生扶日主的能量。代表学历背景、系统庇护、信息摄入与精神深度。\n官杀系统：克制日主的能量。代表外部压力、事业阶层、管理规则与执行力。" }
         ]
       }
     },
@@ -289,10 +340,10 @@ export default function App() {
       isLarge: false,
       colorClass: "from-[#FF2A6D] to-transparent",
       details: {
-        intro: "刑冲会合是八字命盘中干支相互作用的动态触发算法。它们决定了静态的命运架构在遭遇流年大运时，会发生怎样的剧烈状态演变。",
+        intro: "刑冲会合是八字命盘中干支相互作用的动态触发算法。它们决定了静态的命运架构在遭遇外部时间流（流年大运）时，会发生怎样的状态突变。",
         sections:[
-          { heading: "合并协议 (合/会)", body: "包含天干五合、地支六合、三合局等。代表能量的羁绊、合作与资源的深度整合。在现实中常触发结盟、投资或婚恋事件。" },
-          { heading: "冲突协议 (冲/刑)", body: "包含地支六冲、相刑、相害等。代表能量的剧烈碰撞与系统重组。虽然常带来变动与阵痛，但也是打破阶层壁垒、实现跨越式突破的先决条件。" }
+          { heading: "合并协议 (合与会)", body: "包含天干五合、地支六合、三合局等。代表能量的羁绊、合作与资源的深度整合。在现实中常触发结盟、投资到位或婚恋关系的建立。" },
+          { heading: "冲突协议 (冲与刑)", body: "包含地支六冲、相刑等。代表能量的剧烈碰撞与旧系统的强制重组。虽然常伴随变动与阵痛，但这往往是打破阶层壁垒、实现跃迁的唯一途径。" }
         ]
       }
     },
@@ -304,10 +355,10 @@ export default function App() {
       isLarge: true,
       colorClass: "from-[#05D9E8] to-transparent",
       details: {
-        intro: "格局（Pattern）是八字的高层架构模式。它主要通过分析日主与出生月令（核心环境变量）的相对关系，判断出该命局的最佳运行方式和商业变现路径。",
+        intro: "格局（Pattern）是八字命理的高层架构模式。通过分析日主与出生月令（系统核心环境变量）的相对关系，判断出该命局的最佳运行方式和商业变现路径。",
         sections:[
-          { heading: "正格 (Standard Architectures)", body: "包括正官格、财格、印格等。这类架构运行稳定，遵循社会主流行事逻辑，讲究阴阳平衡与中庸之道，适合在成熟的企业体制内稳步攀升。" },
-          { heading: "变格 / 从格 (Specialized Architectures)", body: "当某一种五行能量形成绝对垄断且无法平衡时，系统会放弃中庸，转而“顺从”这股极端能量（如从杀格、从财格）。这类架构风险极高，但往往具备颠覆行业、创造极致成就的爆发力。" }
+          { heading: "正格 (Standard Architectures)", body: "包括正官格、财格、印格等。这类架构运行稳定，遵循社会主流行事逻辑，讲究阴阳平衡与中庸之道，适合在成熟的企业体制内稳步攀升，属于长期复利型结构。" },
+          { heading: "变格/从格 (Specialized Architectures)", body: "当某一种五行能量形成绝对垄断且无法平衡时，系统会放弃中庸，转而“顺从”这股极端能量（如从杀格、从财格）。这类架构风险极高，大起大落，但往往具备颠覆行业、创造极致成就的爆发力。" }
         ]
       }
     }
@@ -317,8 +368,8 @@ export default function App() {
     <>
       <GlobalStyles />
       
-      {/* Neon Cursor */}
-      <div className="fixed top-0 left-0 w-6 h-6 rounded-full pointer-events-none z-[100] mix-blend-screen hidden md:block"
+      {/* Neon Cursor (z-[9999] 确保其永远在最顶层) */}
+      <div className="fixed top-0 left-0 w-6 h-6 rounded-full pointer-events-none z-[9999] mix-blend-screen hidden md:block"
         style={{ transform: `translate(${x - 12}px, ${y - 12}px)`, background: 'radial-gradient(circle, #05D9E8 0%, transparent 80%)', boxShadow: '0 0 15px 2px rgba(5,217,232,0.4)' }}
       />
 
