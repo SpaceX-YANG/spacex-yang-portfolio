@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-// --- Global Styles & Fonts (回归最初的暗黑洋红极客风) ---
+// --- 全局样式与字体注入 (回归最初的暗黑洋红极客风) ---
 const GlobalStyles = () => (
   <style>{`
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=JetBrains+Mono:wght@400;700&display=swap');
@@ -55,10 +55,10 @@ const useSmoothMouse = () => {
         x: prev.x + (targetPosition.current.x - prev.x) * 0.15,
         y: prev.y + (targetPosition.current.y - prev.y) * 0.15,
       }));
-      animationFrameId = requestAnimationFrame(render);
+      animationId = requestAnimationFrame(render);
     };
     render();
-    return () => { window.removeEventListener('mousemove', handleMouseMove); cancelAnimationFrame(animationFrameId); };
+    return () => { window.removeEventListener('mousemove', handleMouseMove); cancelAnimationFrame(animationId); };
   }, []);
   return mousePosition;
 };
@@ -305,8 +305,9 @@ export default function App() {
       details: {
         intro: "十天干（甲、乙、丙、丁、戊、己、庚、辛、壬、癸）是命理中表层显性数据的载体。如果五行是底层协议，天干就是具象化的 API 接口，直接定义个体的底层逻辑。",
         sections: [
-          { heading: "五行与阴阳的具象化", body: "木系协议：甲（阳木/刚直向上），乙（阴木/柔韧适应）。\n火系协议：丙（阳火/猛烈辐射），丁（阴火/精准聚焦）。\n土系协议：戊（阳土/稳固承载），己（阴土/孕育包容）。\n金系协议：庚（阳金/破坏重组），辛（阴金/精密切割）。\n水系协议：壬（阳水/奔腾冲刷），癸（阴水/渗透滋养）。" },
-          { heading: "日元核心 (Day Master CPU)", body: "出生日的天干被称为“日主”，它是整个八字架构的中央处理器。日主的五行属性直接决定了个体的底层行为默认指令集。" }
+          { heading: "五行与阴阳的具象化", body: "木系协议：甲（阳木/参天大树/刚直向上），乙（阴木/藤蔓花草/柔韧适应）。\n火系协议：丙（阳火/太阳之光/猛烈辐射），丁（阴火/星光烛火/精准聚焦）。\n土系协议：戊（阳土/高山城墙/稳固承载），己（阴土/田园沃土/孕育包容）。\n金系协议：庚（阳金/破坏重组），辛（阴金/精密切割）。\n水系协议：壬（阳水/江河湖海/奔腾冲刷），癸（阴水/雨露云雾/渗透滋养）。", fullWidth: true },
+          { heading: "日元核心 (Day Master CPU)", body: "出生日的天干被称为“日主”，它是整个八字架构的中央处理器。日主的五行属性直接决定了个体的底层行为默认指令集。" },
+          { heading: "天干五合 (Combination Logic)", body: "天干之间存在特定的化合反应（如：甲己合土，乙庚合金，丙辛合水，丁壬合木，戊癸合火）。这在系统中表现为能量的羁绊、妥协、联姻或资源的深度绑定。它往往决定了人生轨迹中的重大合作与情感走向。" }
         ]
       }
     },
@@ -348,7 +349,7 @@ export default function App() {
       id: "06", title: "八字格局", subtitle: "Architectural Archetypes",
       desc: "Top-level design patterns to classify frameworks. Evaluates integrity and operational mode.", tags: ['Architecture', 'Optimization', 'Archetypes'],
       details: {
-        intro: "格局（Pattern）是最高层架构模式，通过日主与出生月令（核心环境变量）的相对关系确定，判断系统最佳运维模式。",
+        intro: "格局（Pattern）是最高层架构模式，通过日主与出生月令（系统核心环境变量）的相对关系确定，判断系统最佳运维模式。",
         sections: [
           { heading: "标准架构 (正格)", body: "包括正官、财格、印格等。适合成熟体制，运行稳定，中庸长期复利型结构，适合稳步攀升。" },
           { heading: "特化架构 (变格/从格)", body: "放弃中庸，完全顺从垄断五行（如从杀格）。具备打破阶层壁垒、创造极致爆发成就的能力。" }
@@ -395,16 +396,19 @@ export default function App() {
       <section className="max-w-7xl mx-auto px-6 py-32 grid grid-cols-1 md:grid-cols-3 gap-16 relative">
         <div className="md:col-span-1">
           <div className="sticky top-32 space-y-8">
-            {/* 头像区域 (红蓝圈合并修改) */}
+            {/* 头像区域 (蓝圈精确修改) */}
             <div className="relative w-32 h-32 rounded-full overflow-hidden border-2 border-white/20 group cursor-pointer shadow-[0_0_30px_rgba(218,32,90,0)] hover:shadow-[0_0_30px_rgba(218,32,90,0.3)] hover:border-[#DA205A]">
-              {/* 藍圈處換成你的頭像照片， grayscale -> color */}
-              <img src="/avatar_yangzk.png" alt="Yang.zk Avatar" className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500" />
+              {/* 藍圈處換成相机照片头像，grayscale -> color */}
+              <img src="/avatar_camera.png" alt="SpaceX-YANG Avatar (Camera)" className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500" />
             </div>
             
             <div>
-              {/* 这里直接替换成了 SpaceX Identification Text -YANG.ZK */}
-              <span className="font-mono text-xs text-[#DA205A] tracking-widest uppercase block mb-1">SPACEX IDENT_YANG.ZK</span>
-              <h2 className="text-3xl font-inter font-bold mb-4">DESTINY<br/>ENGINEER.</h2>
+              {/* 这里是文本区域 (红圈精确修改) */}
+              {/* 1. 移除掉冗余的 sub-header <span>SPACEX IDENT_YANG.ZK</span> */}
+              
+              {/* 2. 将 <h2> 文案直接替换为 SpaceX-YANG */}
+              <h2 className="text-3xl font-inter font-bold mb-4">SpaceX-YANG.</h2>
+              
               <p className="text-white/60 text-sm leading-relaxed mb-6 font-mono">
                 Bridging the ancient calculation of the cosmos with modern logic frameworks. Rejecting pure fatalism in favor of actionable, psychological optimization.
               </p>
