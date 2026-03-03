@@ -135,11 +135,11 @@ const AlgorithmicDonut = () => {
 
         const scale = 800 / (800 + z2);
         const screenX = width / 2 + x2 * scale;
-        // 将 3D 渲染中心向下移动 (height / 1.4)，使其像产品图一样托底在文字下方
+        // 将 3D 渲染中心向下移动，使其像产品图一样托底在文字下方
         const screenY = height / 1.4 + y1 * scale; 
 
         ctx.globalAlpha = Math.max(0.02, (scale - 0.5) * 0.5);
-        ctx.fillStyle = '#ffffff'; // 改为纯白/浅灰色的优雅粒子，不再是花哨的彩色
+        ctx.fillStyle = '#ffffff'; 
         ctx.beginPath();
         ctx.arc(screenX, screenY, Math.max(0.5, 1.2 * scale), 0, Math.PI * 2);
         ctx.fill();
@@ -152,7 +152,7 @@ const AlgorithmicDonut = () => {
     const handleGlobalMouseMove = (e) => {
       mouseRef.current = {
         x: (e.clientX - width / 2), 
-        y: (e.clientY - height / 1.4) // 同步更新鼠标交互中心
+        y: (e.clientY - height / 1.4)
       };
     };
 
@@ -399,8 +399,8 @@ export default function App() {
 
       </main>
 
-      {/* 模态框 */}
-      <TheoryModal theory={activeactiveTheory} onClose={() => setActiveTheory(null)} />
+      {/* 模态框，确保这里的变量名拼写正确 */}
+      <TheoryModal theory={activeTheory} onClose={() => setActiveTheory(null)} />
     </>
   );
 }
