@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-// --- 全局样式与字体注入 (回归最初的暗黑洋红极客风) ---
+// --- 全局样式与字体注入 (极暗黑洋红极客风) ---
 const GlobalStyles = () => (
   <style>{`
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=JetBrains+Mono:wght@400;700&display=swap');
@@ -29,8 +29,8 @@ const GlobalStyles = () => (
     .caret { animation: blink 1s step-end infinite; }
     
     .glow-bg {
-      position: absolute;
-      width: 100%; height: 100%;
+      position: fixed;
+      width: 100vw; height: 100vh;
       background: conic-gradient(from 180deg at 50% 50%, rgba(218, 32, 90, 0.1) 0deg, rgba(5, 5, 5, 0) 180deg, rgba(218, 32, 90, 0.1) 360deg);
       filter: blur(80px);
       z-index: -1;
@@ -55,10 +55,10 @@ const useSmoothMouse = () => {
         x: prev.x + (targetPosition.current.x - prev.x) * 0.15,
         y: prev.y + (targetPosition.current.y - prev.y) * 0.15,
       }));
-      animationId = requestAnimationFrame(render);
+      animationFrameId = requestAnimationFrame(render);
     };
     render();
-    return () => { window.removeEventListener('mousemove', handleMouseMove); cancelAnimationFrame(animationId); };
+    return () => { window.removeEventListener('mousemove', handleMouseMove); cancelAnimationFrame(animationFrameId); };
   }, []);
   return mousePosition;
 };
@@ -91,7 +91,7 @@ const MagneticButton = ({ children, className, onClick }) => {
   );
 };
 
-// --- Component: Original Algorithmic Donut ---
+// --- Component: Algorithmic Donut (Mobile Fixed Version) ---
 const AlgorithmicDonut = () => {
   const canvasRef = useRef(null);
   const mouseRef = useRef({ x: 0, y: 0, isHovering: false });
@@ -122,7 +122,7 @@ const AlgorithmicDonut = () => {
     const render = () => {
       ctx.clearRect(0, 0, width, height);
       const scrollY = window.scrollY;
-      const opacity = Math.max(0, 1 - scrollY / 500);
+      const opacity = Math.max(0, 1 - scrollY / 600);
       ctx.fillStyle = `rgba(218, 32, 90, ${opacity * 0.8})`;
 
       angleX += 0.005; angleY += 0.007;
@@ -155,22 +155,36 @@ const AlgorithmicDonut = () => {
     render();
 
     const handleResize = () => { width = window.innerWidth; height = window.innerHeight; canvas.width = width; canvas.height = height; };
-    const handleMouseMove = (e) => { mouseRef.current = { x: e.clientX - width / 2, y: e.clientY - height / 2, isHovering: true }; };
+    
+    // 全局事件监听，解决手机端滚动与交互冲突问题
+    const handleGlobalMouseMove = (e) => { 
+      mouseRef.current = { x: e.clientX - width / 2, y: e.clientY - height / 2, isHovering: true }; 
+    };
+    const handleGlobalTouchMove = (e) => {
+      if (e.touches.length > 0) {
+        mouseRef.current = { x: e.touches[0].clientX - width / 2, y: e.touches[0].clientY - height / 2, isHovering: true };
+      }
+    };
     const handleMouseLeave = () => { mouseRef.current.isHovering = false; };
     
-    canvas.addEventListener('mousemove', handleMouseMove);
-    canvas.addEventListener('mouseleave', handleMouseLeave);
     window.addEventListener('resize', handleResize);
+    window.addEventListener('mousemove', handleGlobalMouseMove);
+    window.addEventListener('touchmove', handleGlobalTouchMove, { passive: true });
+    window.addEventListener('mouseleave', handleMouseLeave);
+    window.addEventListener('touchend', handleMouseLeave);
 
     return () => {
       window.removeEventListener('resize', handleResize);
-      canvas.removeEventListener('mousemove', handleMouseMove);
-      canvas.removeEventListener('mouseleave', handleMouseLeave);
+      window.removeEventListener('mousemove', handleGlobalMouseMove);
+      window.removeEventListener('touchmove', handleGlobalTouchMove);
+      window.removeEventListener('mouseleave', handleMouseLeave);
+      window.removeEventListener('touchend', handleMouseLeave);
       cancelAnimationFrame(animationFrameId);
     };
   }, []);
 
-  return <canvas ref={canvasRef} className="absolute inset-0 z-0 touch-none" />;
+  // 使用 fixed 和 pointer-events-none，彻底释放底层滚动权限
+  return <canvas ref={canvasRef} className="fixed inset-0 z-0 pointer-events-none" />;
 };
 
 // --- Component: 3D Parallax Theory Card ---
@@ -238,7 +252,7 @@ const TheoryModal = ({ theory, onClose }) => {
         <div className="flex justify-between items-center p-6 border-b border-white/10 bg-white/5">
           <div>
             <span className="font-mono text-sm text-[#DA205A] tracking-widest uppercase block mb-1">{theory.subtitle}</span>
-            <h2 className="text-3xl font-inter font-bold text-white">{theory.title}</h2>
+            <h2 className="text-2xl sm:text-3xl font-inter font-bold text-white">{theory.title}</h2>
           </div>
           <MagneticButton onClick={onClose} className="px-4 py-2 text-sm shrink-0">
             [ X ] CLOSE
@@ -257,11 +271,11 @@ const TheoryModal = ({ theory, onClose }) => {
             {/* 右侧：详细协议 */}
             <div className="md:col-span-2 space-y-6">
               {theory.details.sections.map((sec, idx) => (
-                <div key={idx} className="bg-white/5 border border-white/5 rounded-xl p-6">
+                <div key={idx} className="bg-white/5 border border-white/5 rounded-xl p-6 hover:bg-white/10 transition-colors">
                   <h4 className="text-[#DA205A] font-inter font-bold mb-3">{sec.heading}</h4>
                   <div className="text-white/60 leading-relaxed text-sm space-y-2 font-mono">
                     {sec.body.split('\n').map((line, i) => (
-                      <p key={i}>
+                      <p key={i} className={line.startsWith('•') ? 'ml-2' : ''}>
                         {line.includes('：') ? (
                           <>
                             <strong className="text-white">{line.split('：')[0]}：</strong>
@@ -286,7 +300,6 @@ export default function App() {
   const { x, y } = useSmoothMouse();
   const [activeTheory, setActiveTheory] = useState(null);
 
-  // 融合了新内容的完整理论矩阵
   const theories = [
     {
       id: "01", title: "五行理论", subtitle: "Wu Xing State Machine",
@@ -305,54 +318,59 @@ export default function App() {
       details: {
         intro: "十天干（甲、乙、丙、丁、戊、己、庚、辛、壬、癸）是命理中表层显性数据的载体。如果五行是底层协议，天干就是具象化的 API 接口，直接定义个体的底层逻辑。",
         sections: [
-          { heading: "五行与阴阳的具象化", body: "木系协议：甲（阳木/参天大树/刚直向上），乙（阴木/藤蔓花草/柔韧适应）。\n火系协议：丙（阳火/太阳之光/猛烈辐射），丁（阴火/星光烛火/精准聚焦）。\n土系协议：戊（阳土/高山城墙/稳固承载），己（阴土/田园沃土/孕育包容）。\n金系协议：庚（阳金/破坏重组），辛（阴金/精密切割）。\n水系协议：壬（阳水/江河湖海/奔腾冲刷），癸（阴水/雨露云雾/渗透滋养）。", fullWidth: true },
-          { heading: "日元核心 (Day Master CPU)", body: "出生日的天干被称为“日主”，它是整个八字架构的中央处理器。日主的五行属性直接决定了个体的底层行为默认指令集。" },
-          { heading: "天干五合 (Combination Logic)", body: "天干之间存在特定的化合反应（如：甲己合土，乙庚合金，丙辛合水，丁壬合木，戊癸合火）。这在系统中表现为能量的羁绊、妥协、联姻或资源的深度绑定。它往往决定了人生轨迹中的重大合作与情感走向。" }
+          { heading: "五行与阴阳的具象化", body: "木系协议：甲（阳木/刚直向上），乙（阴木/柔韧适应）。\n火系协议：丙（阳火/猛烈辐射），丁（阴火/精准聚焦）。\n土系协议：戊（阳土/稳固承载），己（阴土/孕育包容）。\n金系协议：庚（阳金/破坏重组），辛（阴金/精密切割）。\n水系协议：壬（阳水/奔腾冲刷），癸（阴水/渗透滋养）。" },
+          { heading: "日元核心 (Day Master CPU)", body: "出生日的天干被称为“日主”，它是整个八字架构的中央处理器。日主的五行属性直接决定了个体的底层行为默认指令集 。" },
+          { heading: "天干五合 (Combination Logic)", body: "天干间存在化合反应（如甲己合土，乙庚合金等）。在系统中表现为能量的羁绊、联姻或资源的深度绑定，往往决定重大合作与情感走向。" }
         ]
       }
     },
     {
-      id: "03", title: "十二地支与纳音", subtitle: "12 Earthly Matrices & Na Yin",
-      desc: "Chronobiological matrices tracking Earth's rotational phases and high-dimensional意象.", tags: ['Cycle', 'Symbolic', 'Attributes'],
+      id: "03", title: "十二地支", subtitle: "12 Earthly Matrices",
+      desc: "Chronobiological matrices tracking Earth's rotational phases, storing hidden elemental data.", tags: ['Database', 'Time', 'Space'],
       details: {
-        intro: "十二地支代表地球自转与公转的时空刻度。它们不仅记录时间，更是复杂环境与隐藏资源的底层物理容器。每两个地支组合对应一个“纳音”。",
+        intro: "十二地支（子丑寅卯辰巳午未申酉戌亥）代表地球自转与公转的时空刻度。它们不仅记录时间，更是复杂环境与隐藏资源的底层物理容器。",
         sections: [
-          { heading: "时空四维映射与藏干加密", body: "地支不仅精确映射12个时辰与12个月份，更如同加密数据库，内部隐藏着1到3个天干能量（藏干），代表了人生错综复杂的隐藏资源。" },
-          { heading: "纳音系统：象征性五行协议", body: "纳音不同于天干地支的正五行，是一种高维象征性五行协议。如甲子/乙丑为海中金（深藏不露），丙寅/丁卯为炉中火（温暖有力）。" }
+          { heading: "时空四维映射", body: "时间维度精确映射了一天中的12个时辰与一年中的12个月份；空间维度严密对应着罗盘上的十二个地理方位（如子为正北，午为正南） 。" },
+          { heading: "藏干加密机制 (Hidden Stems)", body: "每个地支内部隐藏着1到3个天干能量，分为本气、中气和副气。例如“子”只藏“癸”水，纯粹且智慧；而“丑”作为冻土，内部却藏有“己(本气)、癸(中气)、辛(副气)”，代表了极其复杂的潜在资源库。" },
+          { heading: "地支交互算法 (刑冲会合)", body: "地支间会触发特定的物理反应：\n三合局（如申子辰合水）：代表资源的深度联盟与能量增强。\n六冲（如子午冲）：水火相冲，性格矛盾且情绪起伏大，代表旧系统的强制重组。\n六合（如子丑合）：代表聪明务实，理论与实践并重，资源互补。" }
         ]
       }
     },
     {
-      id: "04", title: "十神理论", subtitle: "Relational Dynamics",
-      desc: "Socio-psychological variables that calculate human interaction models, derived from Day Master.", tags: ['Psychology', 'Logic Gates', 'Relational'],
+      id: "04", title: "六十甲子与纳音", subtitle: "60-Hash Cycle & Na Yin",
+      desc: "The 60-unit base cycle of the calendar, generating symbolic elemental attributes through stem-branch permutations.", tags: ['Cycle', 'Hash', 'Attributes'],
       details: {
-        intro: "十神是根据“日主”与其他干支的阴阳五行生克关系确定的。通过日主作为CPU核心，推算出比肩、劫财、食神、伤官、偏财、正财、七杀、正官、偏印、正印十神，是解构个性的逻辑门电路。",
+        intro: "六十甲子由十天干和十二地支相配而成。10和12的最小公倍数是60，构成了时间循环的底层哈希表。每两个相邻的组合还会生成一种象征性的“纳音五行”。",
         sections: [
-          { heading: "克我与同我 (比劫/官杀协议)", body: "比劫代表同倍同辈同阴阳合作；官杀代表压力、挑战、权威、社会地位控制。" },
-          { heading: "生我与我生 (印星/食伤协议)", body: "印星代表知识输入、思维方式、精神资产；食伤代表才华输出、叛逆创新、生活品味享受。" },
-          { heading: "我克 (财星协议)", body: "财星代表意外财富、投机收入、理财才能。" }
+          { heading: "空亡理论 (Null Pointers)", body: "每个甲子旬包含10个甲子，但地支有12个，因此每旬必有2个地支“轮空”（如甲子旬缺戌、亥）。空亡代表系统该区块的力量减弱、变化无常，但也可能孕育着跳出常规的潜在机遇。" },
+          { heading: "纳音五行 (Symbolic Elements)", body: "不同于基础的干支五行，纳音是高维的物理意象，共计30种（如甲子/乙丑为【海中金】，丙寅/丁卯为【炉中火】）。在命理学中，常用于判断性格特点与事业方向。" },
+          { heading: "纳音的系统意象", body: "海中金：海底珍藏的金子，象征深藏不露的才华和潜力。\n炉中火：天地为炉，阴阳为炭，温暖有力。\n剑锋金：白帝司权，百炼成钢，锋利且刚强有力。" }
         ]
       }
     },
     {
-      id: "05", title: "刑冲会合协议", subtitle: "Collision & Combine Protocols",
-      desc: "Strict rulesets dictating stem and branch interactions within the destiny matrix.", tags: ['Algorithms', 'Logic gates', 'Events'],
+      id: "05", title: "十神理论", subtitle: "Relational Dynamics",
+      desc: "Socio-psychological variables calculating human interaction models (Wealth, Power, Output, Resources).", tags: ['Psychology', 'Middleware', 'Roles'],
       details: {
-        intro: "刑冲会合是静态命运架构在遭遇外部时间流时触发的状态突变算法。它们决定了能量的合并协议与冲突协议。",
+        intro: "十神是基于“日主(CPU)”与其他干支发生五行生克关系后，衍生出的 10 种社会角色变量。它是将底层代码转化为真实人生事件的“中间件协议”。",
         sections: [
-          { heading: "和谐与联盟协议 (会合局)", body: "三合局（申子辰水局等）增强能量流动；六合局强化聪明务实（子丑土合等）；六冲局爆发情绪起伏（子午冲等）。" },
-          { heading: "冲突与强制重组协议 (冲与刑)", body: "六冲引发旧系统强制重组；地支刑则代表观念固执。这些协议往往决定了合作成立、投资到位或阶层跃迁的唯一途径。" }
+          { heading: "同我者：比肩 / 劫财 (并发线程)", body: "同五行属性。比肩(同性)代表平等的合作、朋友与团队协作；劫财(异性)代表激烈的竞争、争夺与极强的行动冒险力。" },
+          { heading: "生我者：正印 / 偏印 (数据输入)", body: "正印(异性)代表正统学识、长辈庇护与深邃的理解力；偏印/枭神(同性)代表非传统直觉、神秘事物与独特的创新思维。" },
+          { heading: "我生者：食神 / 伤官 (数据输出)", body: "食神(同性)代表温和的才华展示、表达与生活享受；伤官(异性)代表激进的才华倾泻、批判精神与打破规则的叛逆创新。" },
+          { heading: "克我者：正官 / 七杀 (系统控制)", body: "正官(异性)代表责任心、正当权威与管理规则；七杀(同性)代表极限压力、强烈的竞争挑战与激进的行动力。" },
+          { heading: "我克者：正财 / 偏财 (资源占有)", body: "正财(异性)代表正当收入、稳重理财与劳动转化；偏财(同性)代表对意外财富的敏锐嗅觉、风投眼光与交际手腕。" }
         ]
       }
     },
     {
       id: "06", title: "八字格局", subtitle: "Architectural Archetypes",
-      desc: "Top-level design patterns to classify frameworks. Evaluates integrity and operational mode.", tags: ['Architecture', 'Optimization', 'Archetypes'],
+      desc: "Top-level design patterns used to classify human destiny frameworks and life path integrity.", tags: ['Architecture', 'Patterns', 'Optimization'],
       details: {
-        intro: "格局（Pattern）是最高层架构模式，通过日主与出生月令（系统核心环境变量）的相对关系确定，判断系统最佳运维模式。",
+        intro: "格局是命理的高层架构模式。通过分析系统核心环境变量（主要参考月令），判断出该命局的最佳运行方式和商业变现路径。",
         sections: [
-          { heading: "标准架构 (正格)", body: "包括正官、财格、印格等。适合成熟体制，运行稳定，中庸长期复利型结构，适合稳步攀升。" },
-          { heading: "特化架构 (变格/从格)", body: "放弃中庸，完全顺从垄断五行（如从杀格）。具备打破阶层壁垒、创造极致爆发成就的能力。" }
+          { heading: "正格 (Standard Architectures)", body: "包含正官格、财格、印格、食伤格等。这类架构运行稳定，遵循社会主流行事逻辑，讲究阴阳平衡与中庸之道。适合在成熟的体系、企业体制内稳步攀升，属于长期复利型的优质系统结构。" },
+          { heading: "外格 / 从格 (Specialized Architectures)", body: "当系统中某一种五行能量形成绝对垄断，且其他能量无法制衡时，系统会自动触发异常处理，完全放弃中庸，转而“顺从”这股极端能量（如从杀格、从财格、润下格等）。" },
+          { heading: "高阶运维建议", body: "外格的风险极高，大起大落，但往往具备打破现有阶层壁垒、颠覆行业规则、创造极致成就的惊人爆发力。不走寻常路，是其核心主频。" }
         ]
       }
     }
@@ -362,109 +380,105 @@ export default function App() {
     <>
       <GlobalStyles />
       
-      {/* 极简发光鼠标 */}
+      {/* 极简发光鼠标 (移动端通过媒体查询隐藏，不干扰视线) */}
       <div 
         className="fixed top-0 left-0 w-8 h-8 rounded-full pointer-events-none z-[100] mix-blend-screen hidden md:block"
         style={{ transform: `translate(${x - 16}px, ${y - 16}px)`, background: 'radial-gradient(circle, rgba(218,32,90,0.8) 0%, rgba(218,32,90,0) 70%)', boxShadow: '0 0 20px 5px rgba(218,32,90,0.4)' }}
       />
 
-      <div className="glow-bg top-0" />
+      <div className="glow-bg" />
       
-      {/* --- HERO AREA --- */}
-      <section className="relative w-full h-screen flex items-center justify-center overflow-hidden">
-        <AlgorithmicDonut />
-        
-        <div className="relative z-10 text-center pointer-events-none mix-blend-difference mt-[-5vh]">
-          <h1 className="text-6xl md:text-9xl font-inter font-black tracking-tighter uppercase text-transparent [-webkit-text-stroke:2px_white] leading-none mb-4">
-            SpaceX<br/><span className="text-white [-webkit-text-stroke:0px]">YANG</span>
-          </h1>
-          <p className="mt-8 text-xl text-white/80 uppercase tracking-[0.2em] font-bold">
-            Metaphysics, <span className="text-[#DA205A]">Deconstructed.</span><span className="caret">_</span>
-          </p>
-          <p className="mt-2 text-sm text-white/50 tracking-[0.1em] font-mono">
-            Bazi Architecture // Ziwei Systems // Logical Destiny
-          </p>
-        </div>
-        
-        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center animate-bounce text-white/50 text-sm">
-          <span>SCROLL</span>
-          <div className="w-[1px] h-8 bg-gradient-to-b from-white/50 to-transparent mt-2" />
-        </div>
-      </section>
+      {/* 3D 背景层 (彻底修复滚动与交互冲突) */}
+      <AlgorithmicDonut />
 
-      {/* --- ABOUT AREA --- */}
-      <section className="max-w-7xl mx-auto px-6 py-32 grid grid-cols-1 md:grid-cols-3 gap-16 relative">
-        <div className="md:col-span-1">
-          <div className="sticky top-32 space-y-8">
-            {/* 头像区域 (蓝圈精确修改) */}
-            <div className="relative w-32 h-32 rounded-full overflow-hidden border-2 border-white/20 group cursor-pointer shadow-[0_0_30px_rgba(218,32,90,0)] hover:shadow-[0_0_30px_rgba(218,32,90,0.3)] hover:border-[#DA205A]">
-              {/* 藍圈處換成相机照片头像，grayscale -> color */}
-              <img src="/avatar_camera.png" alt="SpaceX-YANG Avatar (Camera)" className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500" />
-            </div>
-            
-            <div>
-              {/* 这里是文本区域 (红圈精确修改) */}
-              {/* 1. 移除掉冗余的 sub-header <span>SPACEX IDENT_YANG.ZK</span> */}
+      <main className="relative z-10 w-full min-h-screen">
+        {/* --- HERO AREA --- */}
+        <section className="relative w-full h-screen flex items-center justify-center">
+          <div className="text-center pointer-events-none mix-blend-difference">
+            <h1 className="text-6xl sm:text-7xl md:text-9xl font-inter font-black tracking-tighter uppercase text-transparent [-webkit-text-stroke:2px_white] leading-none mb-6">
+              SpaceX<br/><span className="text-white [-webkit-text-stroke:0px]">YANG</span>
+            </h1>
+            <p className="mt-4 text-lg md:text-2xl text-white/80 uppercase tracking-[0.2em] font-bold">
+              Metaphysics, <span className="text-[#DA205A]">Deconstructed.</span><span className="caret">_</span>
+            </p>
+            <p className="mt-4 text-xs md:text-sm text-white/50 tracking-[0.1em] font-mono px-4">
+              Bazi Architecture // Ziwei Systems // Logical Destiny
+            </p>
+          </div>
+          
+          <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center animate-bounce text-white/50 text-sm">
+            <span>SCROLL</span>
+            <div className="w-[1px] h-8 bg-gradient-to-b from-white/50 to-transparent mt-2" />
+          </div>
+        </section>
+
+        {/* --- ABOUT AREA --- */}
+        <section className="max-w-7xl mx-auto px-6 py-20 md:py-32 grid grid-cols-1 md:grid-cols-3 gap-16">
+          <div className="md:col-span-1">
+            <div className="md:sticky top-32 space-y-8">
+              {/* 蓝圈：相机照片头像区域 */}
+              <div className="relative w-28 h-28 md:w-32 md:h-32 rounded-full overflow-hidden border-2 border-white/20 group cursor-pointer filter grayscale hover:grayscale-0 transition-all duration-500 shadow-[0_0_30px_rgba(218,32,90,0)] hover:shadow-[0_0_30px_rgba(218,32,90,0.3)] hover:border-[#DA205A]">
+                <img src="/avatar_camera.jpg" alt="Camera Avatar" className="w-full h-full object-cover" />
+              </div>
               
-              {/* 2. 将 <h2> 文案直接替换为 SpaceX-YANG */}
-              <h2 className="text-3xl font-inter font-bold mb-4">SpaceX-YANG.</h2>
-              
-              <p className="text-white/60 text-sm leading-relaxed mb-6 font-mono">
-                Bridging the ancient calculation of the cosmos with modern logic frameworks. Rejecting pure fatalism in favor of actionable, psychological optimization.
-              </p>
-              
-              <div className="flex flex-wrap gap-2">
-                {['Bazi Logic', 'Ziwei Matrices', 'System Architecture', 'Rational Planning'].map(skill => (
-                  <span key={skill} className="px-3 py-1 bg-[#DA205A]/10 text-[#DA205A] text-xs border border-[#DA205A]/30 rounded-sm font-mono whitespace-nowrap">
-                    {skill}
-                  </span>
-                ))}
+              <div>
+                {/* 红圈：大标题直接替换为 SpaceX-YANG */}
+                <h2 className="text-3xl font-inter font-bold mb-4">SpaceX-YANG.</h2>
+                <p className="text-white/60 text-sm leading-relaxed mb-6 font-mono">
+                  Bridging the ancient calculation of the cosmos with modern logic frameworks. Rejecting pure fatalism in favor of actionable, psychological optimization.
+                </p>
+                
+                <div className="flex flex-wrap gap-2">
+                  {['Bazi Logic', 'Ziwei Matrices', 'System Architecture', 'Rational Planning'].map(skill => (
+                    <span key={skill} className="px-3 py-1 bg-[#DA205A]/10 text-[#DA205A] text-xs border border-[#DA205A]/30 rounded-sm font-mono whitespace-nowrap">
+                      {skill}
+                    </span>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        <div className="md:col-span-2 border-l border-white/10 pl-8 space-y-16">
-          {[
-            { year: 'Phase III - Synthesis', role: 'Architect of Fate', desc: 'Integrating Bazi elemental interactions with Ziwei star palaces to formulate deep, rational analyses for career alignment.' },
-            { year: 'Phase II - Logistics', role: 'Systems Analyst', desc: 'Mapping potential life paths against environmental variables to maximize personal and professional output.' },
-            { year: 'Phase I - Foundation', role: 'Data Collection', desc: 'Deconstructing traditional metaphysical texts into logical rule sets, rejecting fatalism for dynamic probability.' }
-          ].map((job, i) => (
-            <div key={i} className="relative group">
-              <div className="absolute -left-[37px] top-1 w-3 h-3 bg-[#050505] border-2 border-white/30 rounded-full group-hover:border-[#DA205A] group-hover:shadow-[0_0_10px_rgba(218,32,90,0.8)] transition-all" />
-              <div className="bg-white/5 backdrop-blur-md border border-white/10 p-6 rounded-xl hover:-translate-y-2 hover:bg-white/10 transition-all duration-300">
-                <span className="text-[#DA205A] text-xs font-bold font-mono">{job.year}</span>
-                <h3 className="text-xl font-inter font-bold text-white mt-1 mb-3">{job.role}</h3>
-                <p className="text-sm text-white/70 font-mono">{job.desc}</p>
+          <div className="md:col-span-2 border-l border-white/10 pl-6 md:pl-8 space-y-12 md:space-y-16">
+            {[
+              { year: 'Phase III - Synthesis', role: 'Architect of Fate', desc: 'Integrating Bazi elemental interactions with Ziwei star palaces to formulate deep, rational analyses for career alignment.' },
+              { year: 'Phase II - Logistics', role: 'Systems Analyst', desc: 'Mapping potential life paths against environmental variables to maximize personal and professional output.' },
+              { year: 'Phase I - Foundation', role: 'Data Collection', desc: 'Deconstructing traditional metaphysical texts into logical rule sets, rejecting fatalism for dynamic probability.' }
+            ].map((job, i) => (
+              <div key={i} className="relative group">
+                <div className="absolute -left-[33px] md:-left-[41px] top-1 w-3 h-3 bg-[#050505] border-2 border-white/30 rounded-full group-hover:border-[#DA205A] group-hover:shadow-[0_0_10px_rgba(218,32,90,0.8)] transition-all" />
+                <div className="bg-white/5 backdrop-blur-md border border-white/10 p-5 md:p-6 rounded-xl hover:-translate-y-2 hover:bg-white/10 transition-all duration-300">
+                  <span className="text-[#DA205A] text-xs md:text-sm font-bold font-mono">{job.year}</span>
+                  <h3 className="text-lg md:text-xl font-inter font-bold text-white mt-1 mb-2 md:mb-3">{job.role}</h3>
+                  <p className="text-xs md:text-sm text-white/70 font-mono">{job.desc}</p>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
-      </section>
+            ))}
+          </div>
+        </section>
 
-      {/* --- KNOWLEDGE BASE (SYSTEM LOGS) AREA --- */}
-      <section className="max-w-7xl mx-auto px-6 py-32 relative">
-        <div className="glow-bg bottom-0 rotate-180" />
-        
-        <h2 className="text-5xl font-inter font-black mb-16 uppercase tracking-tight">System<br/><span className="text-[#DA205A]">Logs_</span></h2>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {theories.map(theory => (
-            <TheoryCard key={theory.id} theory={theory} onClick={setActiveTheory} />
-          ))}
-        </div>
-        
-        <div className="mt-16 text-center">
-          <MagneticButton onClick={() => alert('Initiating Deep Analysis...')} className="text-lg font-mono">
-            CALCULATE TRAJECTORY
-          </MagneticButton>
-        </div>
-      </section>
+        {/* --- KNOWLEDGE BASE --- */}
+        <section className="max-w-7xl mx-auto px-6 py-20 md:py-32">
+          <h2 className="text-4xl md:text-5xl font-inter font-black mb-12 md:mb-16 uppercase tracking-tight">System<br/><span className="text-[#DA205A]">Logs_</span></h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
+            {theories.map(theory => (
+              <TheoryCard key={theory.id} theory={theory} onClick={setActiveTheory} />
+            ))}
+          </div>
+          
+          <div className="mt-16 text-center">
+            <MagneticButton onClick={() => alert('Initiating Deep Analysis...')} className="text-sm md:text-lg font-mono">
+              CALCULATE TRAJECTORY
+            </MagneticButton>
+          </div>
+        </section>
 
-      {/* --- FOOTER --- */}
-      <footer className="border-t border-white/10 py-12 text-center text-white/40 text-sm font-mono reltive z-10">
-        <p>© {new Date().getFullYear()} SPACEX—YANG. LOGIC GATES INITIALIZED.</p>
-      </footer>
+        {/* --- FOOTER --- */}
+        <footer className="border-t border-white/10 py-10 md:py-12 text-center text-white/40 text-xs md:text-sm font-mono">
+          <p>© {new Date().getFullYear()} SPACEX—YANG. LOGIC GATES INITIALIZED.</p>
+        </footer>
+      </main>
 
       {/* --- DETAILS MODAL --- */}
       <TheoryModal theory={activeTheory} onClose={() => setActiveTheory(null)} />
